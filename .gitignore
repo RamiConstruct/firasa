@@ -1,0 +1,9 @@
+data/raw/
+data/pack/
+data/admin_token
+data/calib.json
+data/*.log
+data/*.bak*
+data/uploaded.json
+shots/
+node_modules/
