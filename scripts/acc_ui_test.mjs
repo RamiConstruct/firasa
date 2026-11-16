@@ -1,0 +1,20 @@
+import crypto from 'node:crypto'; import fs from 'fs'; import { spawn } from 'node:child_process'; import { createRequire } from 'node:module';
+const { chromium } = createRequire(import.meta.url)('/opt/npm-tools/node_modules/playwright');
+const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+const jwk = publicKey.export({ format: 'jwk' }); jwk.kid = 'k1'; fs.writeFileSync('/tmp/test_jwks.json', JSON.stringify([jwk]));
+const b64 = o => Buffer.from(JSON.stringify(o)).toString('base64url');
+const jwt = (sub, name) => { const d = b64({ alg: 'RS256', kid: 'k1' }) + '.' + b64({ iss: 'https://accounts.google.com', aud: 'test-client', sub, given_name: name, exp: Math.floor(Date.now() / 1000) + 600 }); return d + '.' + crypto.sign('RSA-SHA256', Buffer.from(d), privateKey).toString('base64url'); };
+const srv = spawn('node', ['scripts/server.mjs'], { stdio: 'ignore' }); await new Promise(r => setTimeout(r, 1800));
+const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'fr-FR' });
+const errs = []; p.on('pageerror', e => errs.push(e.message)); await p.route('**/accounts.google.com/**', r => r.abort());
+await p.goto('http://localhost:8787/'); await p.waitForTimeout(400); await p.screenshot({ path: 'shots/acc_header.png', clip: { x: 0, y: 0, width: 390, height: 120 } });
+await p.click('#accBtn'); await p.waitForTimeout(600); await p.screenshot({ path: 'shots/acc_out.png', fullPage: true });
+console.log('login', await p.evaluate(async c => (await fetch('/api/auth/google', { method: 'POST', body: JSON.stringify({ credential: c }) })).status, jwt('111', 'Mustapha')));
+await p.click('button[data-go=home]'); await p.click('button[data-go=play]');
+for (let k = 0; k < 3; k++) { await p.waitForSelector('.gb.u:not([disabled])'); await p.click('.gb.u'); await p.waitForSelector('#nextB', { timeout: 10000 }); await p.waitForTimeout(900);
+  if (k === 0) console.log('résultat:', await p.evaluate(() => [...document.querySelectorAll('.result p')].map(x => x.innerText).filter(x => /compt/i.test(x)).join(' | '))); await p.click('#nextB'); }
+await p.click('#accBtn'); await p.waitForTimeout(800); await p.screenshot({ path: 'shots/acc_in.png', fullPage: true });
+await p.click('button[data-go=admin]'); await p.waitForTimeout(600); await p.fill('#bn', 'bot-ami'); await p.click('#bAdd'); await p.waitForTimeout(700); await p.screenshot({ path: 'shots/acc_admin.png', fullPage: true });
+console.log('clé affichée:', await p.evaluate(() => !!document.querySelector('#bKey .mono')), '| bouton compte:', await p.evaluate(() => document.querySelector('#accBtn').textContent));
+console.log(errs.join('\n') || 'aucune erreur JS'); await b.close(); srv.kill(); fs.unlinkSync('/tmp/test_jwks.json');

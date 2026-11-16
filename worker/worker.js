@@ -144,24 +144,14 @@ async function makeRound(env, url, ctx) {
     let fx = null;
     if (S.fx) fx = await readFx(env, sym, S.fx, w.t.slice(0, CTX), step, origin, ctx);
     if (wantBook && (!fx || fx.b1[CTX - 1] == null) && tries < 12) continue;
-    let btc = null;
-    if (sym !== 'BTC' && meta.syms.BTC && meta.syms.BTC.tf[tf]) {
-      const ib = meta.syms.BTC.tf[tf], tD = w.t[CTX - 1];
-      let jb = Math.round((tD - ib.t0) / step);
-      for (let k = 0; k < 2 && jb - 30 >= 0 && jb + FUT < ib.n; k++) {
-        const b = await readCandles(env, 'BTC', tf, ib, jb - 30, jb + FUT, origin, ctx);
-        if (!b) break;
-        if (b.t[30] === tD) { btc = { t0: b.t[0], c: b.c.map(x => +(+x).toPrecision(7)) }; break; }
-        jb += Math.round((tD - b.t[30]) / step);
-      }
-    }
     const pat = info.pat ? await readPat(env, sym, tf, info, i - CTX + 1, i, origin, ctx) : null;
-    const p = x => +(+x).toPrecision(7);
-    return json({
-      v: 1, sym, name: NAMES[sym] || sym, tf, step, ctx: CTX, fut: FUT,
-      t: w.t, o: w.o.map(p), h: w.h.map(p), l: w.l.map(p), c: w.c.map(p),
-      vol: w.v.map(p), tb: w.tb.map(p), k: w.k, fx, btc, pat
-    });
+    if (env.DEV_FULL && url.searchParams.get('full') === '1') {
+      const btc = await btcFor(env, meta, sym, tf, step, w.t[CTX - 1], origin, ctx);
+      return json({ v: 1, sym, name: NAMES[sym] || sym, tf, step, ctx: CTX, fut: FUT, t: w.t, o: w.o.map(P7), h: w.h.map(P7), l: w.l.map(P7), c: w.c.map(P7), vol: w.v.map(P7), tb: w.tb.map(P7), k: w.k, fx, btc, pat });
+    }
+    const blind = url.searchParams.get('blind') === '1';
+    const tok = await makeTok(env, { s: sym, tf, i, b: blind ? 1 : 0, e: nowS() + 3600 });
+    return json(publicRound(sym, tf, step, w, fx, pat, blind, tok));
   }
   return json({ error: 'aucune manche trouvée, réessaie' }, 500);
 }
@@ -255,6 +245,7 @@ function tick(env, ms) {
   const d = new Date(ms), m = d.getUTCMinutes(), now = Math.floor(ms / 1000);
   if (m >= 1 && m <= 16) return runSym(env, LSYMS[m - 1], '1h', now);
   if (d.getUTCHours() === 0 && m >= 21 && m <= 36) return runSym(env, LSYMS[m - 21], '1d', now);
+  if (m === 40) return env.DB.batch([env.DB.prepare('DELETE FROM used WHERE exp < ?').bind(now), env.DB.prepare('DELETE FROM sessions WHERE exp < ?').bind(now)]);
   return Promise.resolve(null);
 }
 async function sha256(s) {
@@ -305,12 +296,175 @@ async function labAdmin(request, env, url) {
   return null;
 }
 
+// ---------- comptes (Google), sessions, manches notées côté serveur ----------
+const b64u = buf => btoa(String.fromCharCode.apply(null, new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), ch => ch.charCodeAt(0));
+const randHex = n => Array.from(crypto.getRandomValues(new Uint8Array(n))).map(x => x.toString(16).padStart(2, '0')).join('');
+const nowS = () => Math.floor(Date.now() / 1000);
+let HKEY = null, CFG = {}, CFG_AT = 0, JWKS = null, JWKS_AT = 0;
+async function cfgGet(env, k) {
+  if (Date.now() - CFG_AT > 60000) { CFG = {}; CFG_AT = Date.now(); }
+  if (!(k in CFG)) { const r = await env.DB.prepare('SELECT v FROM cfg WHERE k = ?').bind(k).first(); CFG[k] = r ? r.v : null; }
+  return CFG[k];
+}
+async function hmacKey(env) {
+  if (HKEY) return HKEY;
+  let r = await env.DB.prepare("SELECT v FROM cfg WHERE k = 'round_key'").first();
+  if (!r) { await env.DB.prepare("INSERT OR IGNORE INTO cfg (k, v) VALUES ('round_key', ?)").bind(randHex(32)).run(); r = await env.DB.prepare("SELECT v FROM cfg WHERE k = 'round_key'").first(); }
+  HKEY = await crypto.subtle.importKey('raw', new TextEncoder().encode(r.v), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
+  return HKEY;
+}
+async function makeTok(env, obj) {
+  const body = b64u(new TextEncoder().encode(JSON.stringify(obj)));
+  return body + '.' + b64u(await crypto.subtle.sign('HMAC', await hmacKey(env), new TextEncoder().encode(body)));
+}
+async function readTok(env, tok) {
+  const parts = String(tok || '').split('.'); if (parts.length !== 2) return null;
+  let ok = false; try { ok = await crypto.subtle.verify('HMAC', await hmacKey(env), unb64u(parts[1]), new TextEncoder().encode(parts[0])); } catch (e) { return null; }
+  if (!ok) return null;
+  try { const o = JSON.parse(new TextDecoder().decode(unb64u(parts[0]))); o.id = parts[1].slice(0, 24); return o; } catch (e) { return null; }
+}
+function cookie(request, name) {
+  const m = (request.headers.get('cookie') || '').split(/;\s*/).find(x => x.startsWith(name + '='));
+  return m ? m.slice(name.length + 1) : null;
+}
+async function sessionUser(request, env) {
+  const c = cookie(request, 'fs'); if (!c || !env.DB) return null;
+  return env.DB.prepare('SELECT u.id, u.name, u.role FROM sessions s JOIN users u ON u.id = s.user WHERE s.hash = ? AND s.exp > ?').bind(await sha256(c), nowS()).first();
+}
+function sameOrigin(request, url) { const o = request.headers.get('origin'); return !o || o === url.origin; }
+async function verifyGoogle(env, jwt, clientId) {
+  const p = String(jwt || '').split('.'); if (p.length !== 3) return null;
+  let head, body; try { head = JSON.parse(new TextDecoder().decode(unb64u(p[0]))); body = JSON.parse(new TextDecoder().decode(unb64u(p[1]))); } catch (e) { return null; }
+  if (env.TEST_JWKS) JWKS = env.TEST_JWKS;
+  else if (!JWKS || Date.now() - JWKS_AT > 3600000) { const r = await fetch('https://www.googleapis.com/oauth2/v3/certs'); if (!r.ok) return null; JWKS = (await r.json()).keys; JWKS_AT = Date.now(); }
+  const jwk = JWKS.find(k => k.kid === head.kid); if (!jwk || head.alg !== 'RS256') return null;
+  const key = await crypto.subtle.importKey('jwk', { kty: jwk.kty, n: jwk.n, e: jwk.e, alg: 'RS256', ext: true }, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+  const ok = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, unb64u(p[2]), new TextEncoder().encode(p[0] + '.' + p[1]));
+  if (!ok || body.aud !== clientId || body.exp < nowS() || (body.iss !== 'https://accounts.google.com' && body.iss !== 'accounts.google.com') || !body.sub) return null;
+  return body;
+}
+const cleanName = s => String(s || '').replace(/[^\p{L}\p{N} _.-]/gu, '').trim().slice(0, 20);
+async function accounts(request, env, url) {
+  const p = url.pathname, post = request.method === 'POST';
+  if ((post || request.method === 'DELETE') && !sameOrigin(request, url)) return json({ error: 'origine refusée' }, 403);
+  if (p === '/api/me' && request.method === 'GET') {
+    const u = await sessionUser(request, env), clientId = await cfgGet(env, 'google_client_id');
+    const stats = u ? (await env.DB.prepare('SELECT tf, n, ok FROM ustats WHERE user = ?').bind(u.id).all()).results : [];
+    return json({ user: u ? { name: u.name, role: u.role } : null, clientId, stats });
+  }
+  if (p === '/api/auth/google' && post) {
+    const clientId = await cfgGet(env, 'google_client_id'); if (!clientId) return json({ error: 'connexion Google non activée' }, 503);
+    let b; try { b = await request.json(); } catch (e) { return json({ error: 'JSON invalide' }, 400); }
+    const g = await verifyGoogle(env, b.credential, clientId); if (!g) return json({ error: 'jeton Google refusé' }, 401);
+    let u = await env.DB.prepare('SELECT id, name, role FROM users WHERE sub = ?').bind(g.sub).first();
+    if (!u) {
+      const first = (await env.DB.prepare('SELECT COUNT(*) AS c FROM users').first()).c === 0;
+      const name = cleanName(g.given_name || g.name) || 'Joueur';
+      await env.DB.prepare('INSERT OR IGNORE INTO users (sub, name, role, created) VALUES (?, ?, ?, ?)').bind(g.sub, name, first ? 'admin' : 'user', nowS()).run();
+      u = await env.DB.prepare('SELECT id, name, role FROM users WHERE sub = ?').bind(g.sub).first();
+    }
+    const tok = randHex(32);
+    await env.DB.prepare('INSERT INTO sessions (hash, user, exp) VALUES (?, ?, ?)').bind(await sha256(tok), u.id, nowS() + 2592000).run();
+    return new Response(JSON.stringify({ user: { name: u.name, role: u.role } }), { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'set-cookie': 'fs=' + tok + '; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000' } });
+  }
+  if (p === '/api/players' && request.method === 'GET') {
+    const tf = STEP[url.searchParams.get('tf')] ? url.searchParams.get('tf') : '1d';
+    const rows = (await env.DB.prepare('SELECT u.name, s.n, s.ok FROM ustats s JOIN users u ON u.id = s.user WHERE s.tf = ? AND s.n >= 30 ORDER BY CAST(s.ok AS REAL) / s.n DESC, s.n DESC LIMIT 50').bind(tf).all()).results;
+    return new Response(JSON.stringify({ tf, min: 30, rows }), { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=120' } });
+  }
+  const u = await sessionUser(request, env);
+  if (p === '/api/logout' && post) {
+    const c = cookie(request, 'fs'); if (c) await env.DB.prepare('DELETE FROM sessions WHERE hash = ?').bind(await sha256(c)).run();
+    return new Response('{"ok":true}', { headers: { 'content-type': 'application/json', 'set-cookie': 'fs=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0' } });
+  }
+  if (!u) return json({ error: 'non connecté' }, 401);
+  if (p === '/api/me/name' && post) {
+    let b; try { b = await request.json(); } catch (e) { return json({ error: 'JSON invalide' }, 400); }
+    const name = cleanName(b.name); if (name.length < 3) return json({ error: 'pseudo : 3 à 20 caractères (lettres, chiffres, espace, _ . -)' }, 400);
+    await env.DB.prepare('UPDATE users SET name = ? WHERE id = ?').bind(name, u.id).run(); return json({ name });
+  }
+  if (p === '/api/me' && request.method === 'DELETE') {
+    await env.DB.batch([env.DB.prepare('DELETE FROM ustats WHERE user = ?').bind(u.id), env.DB.prepare('DELETE FROM sessions WHERE user = ?').bind(u.id), env.DB.prepare('DELETE FROM users WHERE id = ?').bind(u.id)]);
+    return new Response('{"deleted":true}', { headers: { 'content-type': 'application/json', 'set-cookie': 'fs=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0' } });
+  }
+  if (p.startsWith('/api/admin/')) {
+    if (u.role !== 'admin') return json({ error: 'réservé à l\'admin' }, 403);
+    if (p === '/api/admin/overview' && request.method === 'GET') {
+      const users = (await env.DB.prepare('SELECT u.id, u.name, u.role, u.created, COALESCE(SUM(s.n), 0) AS n, COALESCE(SUM(s.ok), 0) AS ok FROM users u LEFT JOIN ustats s ON s.user = u.id GROUP BY u.id ORDER BY u.created DESC LIMIT 200').all()).results;
+      const bots = (await env.DB.prepare('SELECT id, name, house, created FROM bots ORDER BY house DESC, id').all()).results;
+      const c = await env.DB.prepare('SELECT (SELECT COUNT(*) FROM users) AS users, (SELECT COUNT(*) FROM preds) AS preds, (SELECT COALESCE(SUM(n), 0) FROM agg) AS scored, (SELECT COALESCE(SUM(n), 0) FROM ustats) AS answers').first();
+      return json({ counts: c, users, bots });
+    }
+    if (p === '/api/admin/bot' && post) {
+      let b; try { b = await request.json(); } catch (e) { return json({ error: 'JSON invalide' }, 400); }
+      const name = cleanName(b.name); if (name.length < 3) return json({ error: 'nom : 3 à 20 caractères' }, 400);
+      if (await env.DB.prepare('SELECT id FROM bots WHERE name = ?').bind(name).first()) return json({ error: 'nom déjà pris' }, 409);
+      const key = randHex(24);
+      await env.DB.prepare('INSERT INTO bots (name, code, key_hash, house, created) VALUES (?, NULL, ?, 0, ?)').bind(name, await sha256(key), nowS()).run();
+      return json({ name, key });
+    }
+    if (p === '/api/admin/bot' && request.method === 'DELETE') {
+      const id = +url.searchParams.get('id'); const b = await env.DB.prepare('SELECT id FROM bots WHERE id = ? AND house = 0').bind(id).first(); if (!b) return json({ error: 'inconnu' }, 404);
+      await env.DB.batch([env.DB.prepare('DELETE FROM preds WHERE bot = ?').bind(id), env.DB.prepare('DELETE FROM agg WHERE bot = ?').bind(id), env.DB.prepare('DELETE FROM bots WHERE id = ?').bind(id)]);
+      return json({ deleted: id });
+    }
+  }
+  return json({ error: 'introuvable' }, 404);
+}
+async function btcFor(env, meta, sym, tf, step, tD, origin, ctx) {
+  if (sym === 'BTC' || !meta.syms.BTC || !meta.syms.BTC.tf[tf]) return null;
+  const ib = meta.syms.BTC.tf[tf]; let jb = Math.round((tD - ib.t0) / step);
+  for (let k = 0; k < 2 && jb - 30 >= 0 && jb + FUT < ib.n; k++) {
+    const b = await readCandles(env, 'BTC', tf, ib, jb - 30, jb + FUT, origin, ctx); if (!b) break;
+    if (b.t[30] === tD) return { t0: b.t[0], c: b.c.map(x => +(+x).toPrecision(7)) };
+    jb += Math.round((tD - b.t[30]) / step);
+  }
+  return null;
+}
+const P7 = x => +(+x).toPrecision(7);
+// Manche envoyée au joueur : uniquement les bougies visibles. En mode aveugle : prix en base 100, volumes et montants ramenés à une échelle neutre, dates remplacées.
+function publicRound(sym, tf, step, w, fx, pat, blind, tok) {
+  const D = CTX - 1, cut = a => a.slice(0, CTX), out = { v: 2, tf, step, ctx: CTX, fut: FUT, tok, blind: blind ? 1 : 0, pat };
+  if (!blind) {
+    Object.assign(out, { sym, name: NAMES[sym] || sym, t: cut(w.t), o: cut(w.o).map(P7), h: cut(w.h).map(P7), l: cut(w.l).map(P7), c: cut(w.c).map(P7), vol: cut(w.v).map(P7), tb: cut(w.tb).map(P7), fx });
+    return out;
+  }
+  const f = 100 / w.c[D]; let mv = 0; for (let i = 0; i < CTX; i++) mv += w.v[i] / CTX; const g = mv > 0 ? 1000 / mv : 1;
+  Object.assign(out, { t: cut(w.t).map((x, i) => i * step), o: cut(w.o).map(x => P7(x * f)), h: cut(w.h).map(x => P7(x * f)), l: cut(w.l).map(x => P7(x * f)), c: cut(w.c).map(x => P7(x * f)), vol: cut(w.v).map(x => P7(x * g)), tb: cut(w.tb).map(x => P7(x * g)) });
+  if (fx) {
+    const sc = (keys, ref) => { const k = ref > 0 ? 100 / ref : 1; const o = {}; for (const key of keys) o[key] = fx[key].map(x => x == null ? null : +(x * k).toPrecision(6)); return o; };
+    const bookRef = (fx.b5[D] || 0) + (fx.a5[D] || 0) || (fx.b1[D] || 0) + (fx.a1[D] || 0);
+    out.fx = Object.assign({}, sc(['b1', 'a1', 'b2', 'a2', 'b5', 'a5'], bookRef), sc(['oi'], fx.oi[D] || fx.oi.find(x => x != null) || 0), { lsTop: fx.lsTop, lsAll: fx.lsAll, taker: fx.taker, fund: fx.fund });
+  } else out.fx = null;
+  return out;
+}
+async function answer(request, env, url, ctx) {
+  if (request.method !== 'POST') return json({ error: 'POST attendu' }, 405);
+  let b; try { b = await request.json(); } catch (e) { return json({ error: 'JSON invalide' }, 400); }
+  const h = +b.h, g = b.g === 1 || b.g === -1 ? b.g : 0;
+  if (![1, 3, 5, 10].includes(h) || !g) return json({ error: 'attendu : g = 1 ou -1, h = 1, 3, 5 ou 10' }, 400);
+  const t = await readTok(env, b.tok); if (!t || t.e < nowS()) return json({ error: 'manche expirée' }, 410);
+  const meta = await getMeta(env), S = meta && meta.syms[t.s], info = S && S.tf[t.tf]; if (!info) return json({ error: 'manche inconnue' }, 410);
+  const used = await env.DB.prepare('INSERT OR IGNORE INTO used (id, exp) VALUES (?, ?)').bind(t.id, t.e).run();
+  if (!used.meta || used.meta.changes === 0) return json({ error: 'réponse déjà donnée pour cette manche' }, 409);
+  const step = STEP[t.tf], w = await readCandles(env, t.s, t.tf, info, t.i - CTX + 1, t.i + FUT, url.origin, ctx); if (!w) return json({ error: 'données indisponibles' }, 503);
+  const fx = S.fx ? await readFx(env, t.s, S.fx, w.t.slice(0, CTX), step, url.origin, ctx) : null;
+  const btc = await btcFor(env, meta, t.s, t.tf, step, w.t[CTX - 1], url.origin, ctx);
+  const D = CTX - 1, out = Math.sign(w.c[D + h] - w.c[D]);
+  const u = await sessionUser(request, env), ranked = !!(u && t.b && out !== 0 && sameOrigin(request, url));
+  if (ranked) await env.DB.prepare('INSERT INTO ustats (user, tf, n, ok) VALUES (?, ?, 1, ?) ON CONFLICT (user, tf) DO UPDATE SET n = n + 1, ok = ok + excluded.ok').bind(u.id, t.tf, out === g ? 1 : 0).run();
+  return json({ sym: t.s, name: NAMES[t.s] || t.s, tf: t.tf, step, ctx: CTX, fut: FUT, t: w.t, o: w.o.map(P7), h: w.h.map(P7), l: w.l.map(P7), c: w.c.map(P7), vol: w.v.map(P7), tb: w.tb.map(P7), fx, btc, ranked, out });
+}
+
 export default {
   async scheduled(event, env, ctx) { ctx.waitUntil(tick(env, event.scheduledTime)); },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const p = url.pathname;
     if (p === '/api/round') return makeRound(env, url, ctx);
+    if (p === '/api/answer') return answer(request, env, url, ctx);
+    if (p === '/api/me' || p === '/api/players' || p === '/api/logout' || p.startsWith('/api/auth/') || p.startsWith('/api/me/') || p.startsWith('/api/admin/')) return accounts(request, env, url);
     if (p === '/api/lab/live') return labLive(env);
     if (p === '/api/lab/predict') return labPredict(request, env);
     if (p === '/api/meta') {

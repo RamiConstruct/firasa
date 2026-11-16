@@ -33,7 +33,7 @@ const FR = () => lang() === 'fr';
 // ---------- textes de l'interface ----------
 const UI = {
   fr: {
-    tagline: 'lis le marché', myStats: 'Mes stats', otherLang: 'EN', docTitle: 'Firasa — devine le prochain mouvement',
+    tagline: 'lis le marché', myStats: 'Stats', otherLang: 'EN', docTitle: 'Firasa — devine le prochain mouvement',
     credit: 'Conçu et dirigé par <b>Mustapha</b><span class="dot">◆</span>Développé par <b>Claude</b><span class="dot d2">◆</span><span class="more"><b>Kawthar</b>, sa sœur, le rejoindra peut-être.</span>',
     soonTag: 'Bientôt', soon: 'Abonnement à la semaine ou au mois.',
     foot: 'Données historiques publiques Binance (spot &amp; futures) · Entraînement uniquement, pas un conseil financier.',
@@ -115,6 +115,19 @@ const UI = {
     liveBook: 'Carnet live (20 meilleurs niveaux)', spread: 'Écart', imb: 'Acheteurs / vendeurs',
     liveNote: "Taux de réussite historiques disponibles en 15 min et 1 h ; non mesurés en 1 et 5 min.",
     liveAcc: 'précision live', liveStats: 'Mode live', liveCalls: n => `${n} appel${n > 1 ? 's' : ''}`,
+    signIn: 'Connexion', accTitle: 'Compte', accWhy: 'Connecte-toi avec Google pour que tes coups en mode aveugle comptent dans le classement des joueurs.',
+    accOff: "La connexion Google n'est pas encore activée sur ce site.",
+    accName: 'Pseudo', accNameHint: '3 à 20 caractères, visible dans le classement', accRanked: 'Tes coups comptés', accNoRanked: 'Aucun coup compté pour l\'instant.',
+    accRule: "Un coup est compté quand tu es connecté et en mode aveugle. Le serveur garde les bougies à deviner jusqu'à ta réponse, et chaque manche n'accepte qu'une réponse.",
+    logout: 'Se déconnecter', delAcc: 'Supprimer mon compte', delConfirm: 'Supprimer ton compte et tes coups comptés ? Cette action est définitive.',
+    privacy: "Données enregistrées : ton identifiant de compte Google, un pseudo (ton prénom Google au départ, modifiable) et, par unité de temps, le nombre de coups comptés et de coups justes. Ton adresse e-mail n'est pas enregistrée. Un cookie de connexion est conservé 30 jours.",
+    plTitle: 'Classement des joueurs', plIntro: 'Coups en mode aveugle des joueurs connectés. Au moins 30 coups pour apparaître.', plName: 'Nom', plEmpty: tf => `Aucun joueur n'a encore 30 coups comptés en ${tf}.`,
+    rankedYes: 'Coup compté dans ton classement.', rankedNo: 'Coup non compté : seul le mode aveugle compte.',
+    ansNet: 'Connexion impossible. Réessaie.', ansExpired: 'Manche expirée ou déjà jouée : nouvelle manche.',
+    admTitle: 'Administration', admDenied: "Page réservée à l'administrateur.", admUsers: 'Comptes', admAnswers: 'coups comptés', admScored: 'prévisions de bots notées',
+    admBots: 'Bots', admBotName: 'Nom du bot', admBotAdd: 'Créer une clé', admKind: 'Type', admHouse: 'maison', admExt: 'extérieur',
+    admBotNote: "Un bot extérieur envoie ses prévisions avec sa clé (POST /api/lab/predict). Supprimer un bot efface aussi ses prévisions et ses scores.",
+    admKeyNote: "Copie cette clé maintenant : seule son empreinte est enregistrée, elle ne sera plus affichée.", admDelConfirm: 'Supprimer ce bot, ses prévisions et ses scores ?',
     labBtn: 'Laboratoire : classement des outils', labTitle: 'Laboratoire — classement des outils',
     labIntro: (n, sy, h) => `${n} outils, chacun réglé ou entraîné uniquement sur les données d'avant le 1er janvier 2024, puis mesuré du 1er janvier 2024 au 14 novembre 2026, période qu'il n'a pas vue. ${sy} cryptos Binance. Question posée : le prix sera-t-il plus haut ou plus bas ${h} bougies plus tard ?`,
     labMethod: (k, fee) => `Intervalle : rééchantillonnage par mois (4 000 tirages), niveau corrigé pour ${k} comparaisons (Bonferroni, 5 % au total). Gain : position dans le sens de l'outil, tenue jusqu'à l'horizon, mises égales ; net = brut moins ${fee} de frais aller-retour (hypothèse).`,
@@ -131,7 +144,7 @@ const UI = {
     fwLine: (n, c, g) => `${n} prévisions notées sur ${c} bougies de départ · gain brut moyen ${g}.`,
     fwCI: (a, b) => `Intervalle à 95 % : ${a} à ${b}.`, fwNoCI: 'Moins de 30 bougies de départ : pas d\'intervalle.',
     fwNote: "Intervalle calculé par bougie de départ. Les prévisions à 5 bougies se chevauchent : l'incertitude réelle est plus grande.",
-    fwApi: "Bots extérieurs : envoi des prévisions par API (POST /api/lab/predict, dans les 10 minutes après la clôture en 1 h, 60 minutes en 1 jour). Les clés sont délivrées sur invitation pour l'instant.",
+    fwApi: "Bots extérieurs : envoi des prévisions par API (POST /api/lab/predict, dans les 10 minutes après la clôture en 1 h, 60 minutes en 1 jour). Les clés sont créées par l'administrateur.",
     labTools: { up: 'Toujours « plus haut »', mom: 'Momentum 10 bougies (suivre)', amom: 'Momentum 10 bougies (inverser)', ema200: "Côté de l'EMA 200", ema2050: 'EMA 20 au-dessus ou sous EMA 50', rsi: 'RSI : hausse sous 30, baisse au-dessus de 70', bb: 'Bollinger : hausse sous la bande basse, baisse au-dessus de la haute', macd: "Signe de l'histogramme MACD", flow: 'Achats au marché > 53 % ou < 47 % (suivre)', aflow: 'Achats au marché > 53 % ou < 47 % (inverser)', eng: 'Avalement (sens TA-Lib)', aeng: 'Avalement (sens inversé)', logit: 'Régression logistique (12 mesures)', logit_c: 'Régression logistique, seulement si probabilité > 53 % ou < 47 %', logit11: 'Régression logistique (11 mesures, sans les achats au marché)', logit11_c: 'Régression logistique (11 mesures), seulement si probabilité > 53 % ou < 47 %', gb: 'Arbres boostés (12 mesures)', gb_c: 'Arbres boostés, seulement si probabilité > 53 % ou < 47 %' },
     patBtn: 'Figures de bougies : ce qui a suivi chacune', patTitle: 'Figures de bougies',
     patIntro: (n, c, h) => `Les ${n} figures de la bibliothèque TA-Lib (définitions standard), détectées sur ${c} bougies Binance : 16 cryptos, de 15 min à 1 jour, d'août 2017 au 14 novembre 2026. Pour chaque figure : nombre de cas, et % de fois où le prix était plus haut ${h} après la bougie qui termine la figure.`,
@@ -145,7 +158,7 @@ const UI = {
     patOv: 'Figures', crossPat: 'Figures'
   },
   en: {
-    tagline: 'read the market', myStats: 'My stats', otherLang: 'FR', docTitle: 'Firasa — call the next move',
+    tagline: 'read the market', myStats: 'Stats', otherLang: 'FR', docTitle: 'Firasa — call the next move',
     credit: 'Conceived and directed by <b>Mustapha</b><span class="dot">◆</span>Built by <b>Claude</b><span class="dot d2">◆</span><span class="more">His sister <b>Kawthar</b> may join him.</span>',
     soonTag: 'Soon', soon: 'Weekly or monthly subscription.',
     foot: 'Public historical Binance data (spot &amp; futures) · For training only, not financial advice.',
@@ -227,6 +240,19 @@ const UI = {
     liveBook: 'Live order book (top 20 levels)', spread: 'Spread', imb: 'Bids / asks',
     liveNote: 'Historical success rates available on 15m and 1h; not measured on 1m and 5m.',
     liveAcc: 'live accuracy', liveStats: 'Live mode', liveCalls: n => `${n} call${n > 1 ? 's' : ''}`,
+    signIn: 'Sign in', accTitle: 'Account', accWhy: 'Sign in with Google so your blind-mode calls count in the player leaderboard.',
+    accOff: 'Google sign-in is not enabled on this site yet.',
+    accName: 'Nickname', accNameHint: '3 to 20 characters, shown in the leaderboard', accRanked: 'Your counted calls', accNoRanked: 'No counted calls yet.',
+    accRule: 'A call is counted when you are signed in and in blind mode. The server keeps the candles to guess until you answer, and each round accepts only one answer.',
+    logout: 'Sign out', delAcc: 'Delete my account', delConfirm: 'Delete your account and your counted calls? This cannot be undone.',
+    privacy: 'Data stored: your Google account identifier, a nickname (your Google first name at first, editable) and, per timeframe, the number of counted calls and correct calls. Your email address is not stored. A sign-in cookie is kept for 30 days.',
+    plTitle: 'Player leaderboard', plIntro: 'Blind-mode calls by signed-in players. At least 30 calls to appear.', plName: 'Name', plEmpty: tf => `No player has 30 counted calls on ${tf} yet.`,
+    rankedYes: 'Call counted in your ranking.', rankedNo: 'Call not counted: only blind mode counts.',
+    ansNet: 'Could not connect. Try again.', ansExpired: 'Round expired or already played: new round.',
+    admTitle: 'Administration', admDenied: 'This page is for the administrator only.', admUsers: 'Accounts', admAnswers: 'counted calls', admScored: 'bot calls scored',
+    admBots: 'Bots', admBotName: 'Bot name', admBotAdd: 'Create a key', admKind: 'Type', admHouse: 'house', admExt: 'external',
+    admBotNote: 'An external bot sends its calls with its key (POST /api/lab/predict). Deleting a bot also deletes its calls and scores.',
+    admKeyNote: 'Copy this key now: only its fingerprint is stored, it will not be shown again.', admDelConfirm: 'Delete this bot, its calls and its scores?',
     labBtn: 'Lab: tool leaderboard', labTitle: 'Lab — tool leaderboard',
     labIntro: (n, sy, h) => `${n} tools, each tuned or trained only on data before January 1, 2024, then measured from January 1, 2024 to November 14, 2026, a period it has not seen. ${sy} Binance coins. Question asked: will price be higher or lower ${h} candles later?`,
     labMethod: (k, fee) => `Interval: resampling by month (4,000 draws), level corrected for ${k} comparisons (Bonferroni, 5% overall). Gain: position in the tool's direction, held to the horizon, equal size; net = gross minus ${fee} round-trip fees (assumption).`,
@@ -243,7 +269,7 @@ const UI = {
     fwLine: (n, c, g) => `${n} scored calls over ${c} starting candles · average gross gain ${g}.`,
     fwCI: (a, b) => `95% interval: ${a} to ${b}.`, fwNoCI: 'Fewer than 30 starting candles: no interval.',
     fwNote: 'Interval computed per starting candle. 5-candle calls overlap: the real uncertainty is larger.',
-    fwApi: 'External bots: calls are sent by API (POST /api/lab/predict, within 10 minutes of the close on 1h, 60 minutes on 1D). Keys are issued by invitation for now.',
+    fwApi: 'External bots: calls are sent by API (POST /api/lab/predict, within 10 minutes of the close on 1h, 60 minutes on 1D). Keys are created by the administrator.',
     labTools: { up: 'Always "higher"', mom: '10-candle momentum (follow)', amom: '10-candle momentum (fade)', ema200: 'Side of the EMA 200', ema2050: 'EMA 20 above or below EMA 50', rsi: 'RSI: up below 30, down above 70', bb: 'Bollinger: up below the lower band, down above the upper', macd: 'Sign of the MACD histogram', flow: 'Market buys > 53% or < 47% (follow)', aflow: 'Market buys > 53% or < 47% (fade)', eng: 'Engulfing (TA-Lib direction)', aeng: 'Engulfing (reversed)', logit: 'Logistic regression (12 measures)', logit_c: 'Logistic regression, only when probability > 53% or < 47%', logit11: 'Logistic regression (11 measures, without market buys)', logit11_c: 'Logistic regression (11 measures), only when probability > 53% or < 47%', gb: 'Boosted trees (12 measures)', gb_c: 'Boosted trees, only when probability > 53% or < 47%' },
     patBtn: 'Candlestick patterns: what followed each one', patTitle: 'Candlestick patterns',
     patIntro: (n, c, h) => `The ${n} patterns of the TA-Lib library (standard definitions), detected on ${c} Binance candles: 16 coins, 15m to 1D, August 2017 to November 14, 2026. For each pattern: number of cases, and % of times price was higher ${h} after the candle that completes the pattern.`,
@@ -286,6 +312,7 @@ function chrome() {
   $('#credit').innerHTML = U().credit;
   $('#statsBtn').textContent = U().myStats;
   $('#langBtn').textContent = U().otherLang;
+  accLabel();
   $('#foot').innerHTML = U().foot;
 }
 let SCREEN = 'home', lastReport = null;
@@ -299,6 +326,8 @@ $('#langBtn').onclick = () => {
   else if (SCREEN === 'live') renderLive();
   else if (SCREEN === 'patterns') renderPatterns();
   else if (SCREEN === 'lab') renderLab();
+  else if (SCREEN === 'account') renderAccount();
+  else if (SCREEN === 'admin') renderAdmin();
   else if (SCREEN === 'game') renderGameShell();
   else go(SCREEN);
 };
@@ -306,10 +335,10 @@ $('#langBtn').onclick = () => {
 // ---------- réseau ----------
 const queue = [];
 let fetching = 0;
-const sigOf = () => set().tfs.join(',') + '|' + (set().book ? 1 : 0);
+const sigOf = () => set().tfs.join(',') + '|' + (set().book ? 1 : 0) + '|' + (set().blind ? 1 : 0);
 async function fetchRound() {
   const s = set();
-  const u = `/api/round?tfs=${s.tfs.join(',')}${s.book ? '&book=1' : ''}&r=${Math.random().toString(36).slice(2)}`;
+  const u = `/api/round?tfs=${s.tfs.join(',')}${s.book ? '&book=1' : ''}${s.blind ? '&blind=1' : ''}&r=${Math.random().toString(36).slice(2)}`;
   for (let i = 0; i < 3; i++) {
     try { const r = await fetch(u); if (r.ok) { const d = await r.json(); if (!d.error) return d; } } catch (e) {}
     await new Promise(r => setTimeout(r, 600 * (i + 1)));
@@ -319,11 +348,11 @@ async function fetchRound() {
 function refill() {
   while (queue.length + fetching < 2) {
     fetching++; const sig = sigOf();
-    fetchRound().then(d => queue.push({ sig, d })).catch(() => {}).finally(() => { fetching--; });
+    fetchRound().then(d => queue.push({ sig, d, at: Date.now() })).catch(() => {}).finally(() => { fetching--; });
   }
 }
 function takeQueued() {
-  while (queue.length) { const q = queue.shift(); if (q.sig === sigOf()) return q.d; }
+  while (queue.length) { const q = queue.shift(); if (q.sig === sigOf() && Date.now() - q.at < 2400000) return q.d; }
   return null;
 }
 async function nextRound() {
@@ -348,6 +377,8 @@ function go(screen) {
   else if (screen === 'live') renderLive();
   else if (screen === 'patterns') renderPatterns();
   else if (screen === 'lab') renderLab();
+  else if (screen === 'account') renderAccount();
+  else if (screen === 'admin') renderAdmin();
   window.scrollTo(0, 0);
 }
 
@@ -395,7 +426,7 @@ function renderHome() {
   $('#sLen').onclick = e => { const b = e.target.closest('button'); if (!b) return; s.len = +b.dataset.v; save(); renderHome(); };
   $('#sLang').onclick = e => { const b = e.target.closest('button'); if (!b || b.dataset.v === lang()) return; $('#langBtn').click(); };
   $('#sTf').onclick = e => { const b = e.target.closest('button'); if (!b) return; const x = b.dataset.v; if (s.tfs.includes(x)) { if (s.tfs.length > 1) s.tfs = s.tfs.filter(y => y !== x); } else s.tfs.push(x); queue.length = 0; save(); renderHome(); };
-  app.querySelectorAll('.tog').forEach(b => b.onclick = () => { s[b.dataset.k] = !s[b.dataset.k]; if (b.dataset.k === 'book') queue.length = 0; save(); renderHome(); });
+  app.querySelectorAll('.tog').forEach(b => b.onclick = () => { s[b.dataset.k] = !s[b.dataset.k]; if (b.dataset.k === 'book' || b.dataset.k === 'blind') queue.length = 0; save(); renderHome(); });
   const ns = $('#newSess'); if (ns) ns.onclick = () => { if (ST.cur.rounds.length) ST.sessions.push(Object.assign(ST.cur, { done: false, end: Date.now() })); ST.cur = null; save(); startOrResume(); };
   refill();
 }
@@ -515,13 +546,26 @@ function legendCard() {
   <p class="muted" style="margin:8px 0 0">${t.legend}</p></section>`;
 }
 
-function onGuess(g) {
-  if (!G || G.guess != null) return;
-  const R = G.R, s = set();
+async function onGuess(g) {
+  if (!G || G.guess != null || G.busy || G.live) return;
+  const R = G.R, s = set(), t = U(); G.busy = true;
+  app.querySelectorAll('.gb').forEach(b => b.disabled = true);
+  const A = await apiPost('/api/answer', { tok: R.tok, g, h: G.h });
+  if (!G || G.R !== R) return;
+  G.busy = false;
+  if (A.error) {
+    if (A.error === 'net') { toast(t.ansNet); app.querySelectorAll('.gb').forEach(b => b.disabled = false); return; }
+    toast(t.ansExpired); queue.length = 0; playRound(); return;
+  }
+  const sig = {}; G.S.list.forEach(x => { if (x.dir) sig[x.id] = x.dir; });
+  for (const k of ['sym', 'name', 't', 'o', 'h', 'l', 'c', 'vol', 'tb', 'fx', 'btc']) R[k] = A[k];
+  G.ranked = A.ranked;
+  G.I = E.indicators(R, R.ctx, R.ctx - R.vis);
+  G.S = E.signals(R, G.I, { hist: HIST, h: G.h, lang: lang(), pats: window.FIRASA_PATTERNS });
+  G.base = R.c[R.ctx - 1];
   G.guess = g; G.conf = s.conf;
   G.res = E.judge(R, G.S, g, G.h, lang());
   G.Ifull = E.indicators(R, R.ctx + R.fut, R.ctx - R.vis);
-  const sig = {}; G.S.list.forEach(x => { if (x.dir) sig[x.id] = x.dir; });
   const rec = { s: R.sym, tf: R.tf, t: R.t[R.ctx - 1], h: G.h, g, cf: s.conf, out: G.res.out, ok: G.res.correct, mv: +G.res.move.toFixed(3), am: +G.res.atrMove.toFixed(2), cs: G.res.cons, sig };
   ST.cur.rounds.push(rec); save();
   renderGame();
@@ -545,6 +589,7 @@ function showResult(noScroll) {
     ${r.out !== 0 && r.keys.length ? `<div class="lesson"><b>${t.toSee}</b> ${r.keys.map(k => `${k.label} (${k.reading}${k.rel ? t.histRight(pctTxt(k.rel.r, 1), k.rel.n.toLocaleString(loc())) : ''})`).join(' ; ')}.<br><span class="muted">${r.keys[0].lesson}</span></div>` : r.out !== 0 ? `<div class="lesson">${t.noSig}</div>` : ''}
     ${r.traps.length ? `<div class="lesson"><b>${t.trap}</b> ${r.traps.map(k => t.trapItem(k.label, pctTxt(k.rel.r, 1), k.rel.n.toLocaleString(loc()))).join(' ; ')}.</div>` : ''}
     <p class="small muted" style="margin:10px 0 0">${t.count(r.right.length, r.wrong.length)}</p>
+    ${ME.user && r.out !== 0 ? `<p class="small ${G.ranked ? 'gold' : 'muted'}" style="margin:6px 0 0">${G.ranked ? t.rankedYes : t.rankedNo}</p>` : ''}
     <button class="btn" id="nextB" style="margin-top:12px">${last ? t.seeReport : t.next}</button>
   </section>${dayPanel()}`;
   renderSigs();
@@ -820,6 +865,77 @@ function renderStats() {
   app.insertAdjacentHTML('beforeend', `<section class="card"><h3>${t.sessions}</h3><table><tr><th>${t.thDate}</th><th class="n">${t.thCalls}</th><th class="n">${t.thAcc}</th></tr>${list.map(s => { const A = E.aggregate(s.rounds); return `<tr><td>${new Date(s.start).toLocaleDateString(loc(), { day: 'numeric', month: 'short', year: 'numeric' })}${s.done ? '' : ` <span class="muted">${t.abandoned}</span>`}</td><td class="n">${A.n}</td><td class="n ${A.acc >= 0.5 ? 'up' : 'down'}">${A.n ? pctTxt(A.acc) : '–'}</td></tr>`; }).join('')}</table>
   <button class="btn ghost" style="margin-top:12px" id="wipe">${t.wipe}</button></section>`);
   $('#wipe').onclick = () => { if (confirm(t.wipeConfirm)) { ST.sessions = []; ST.cur = null; ST.live = []; ST.liveOpen = []; save(); renderStats(); } };
+}
+
+// ---------- comptes ----------
+let ME = { user: null, clientId: null, stats: [] };
+const esc = x => String(x).replace(/[&<>"']/g, ch => '&#' + ch.charCodeAt(0) + ';');
+const api = async (path, opt) => { try { const r = await fetch(path, opt); const d = await r.json().catch(() => ({})); return r.ok ? d : { error: d.error || String(r.status) }; } catch (e) { return { error: 'net' }; } };
+const apiPost = (path, body) => api(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) });
+function accLabel() { const b = $('#accBtn'); if (b) b.textContent = ME.user ? ME.user.name.slice(0, 10) : U().signIn; }
+async function loadMe() { const d = await api('/api/me'); if (!d.error) ME = d; accLabel(); return ME; }
+function gsi(cb) { if (window.google && google.accounts && google.accounts.id) return cb(); const sc = document.createElement('script'); sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true; sc.onload = cb; document.head.appendChild(sc); }
+function playersCard(tf) {
+  const t = U();
+  return `<section class="card"><h3>${t.plTitle}</h3><p class="small muted">${t.plIntro}</p>
+    <div class="seg" id="plTf">${['15m', '1h', '4h', '1d'].map(x => `<button data-v="${x}" class="${tf === x ? 'on' : ''}">${tfL(x)}</button>`).join('')}</div><div id="plRows" style="margin-top:8px"><p class="small muted">…</p></div></section>`;
+}
+function loadPlayers(tf) {
+  api('/api/players?tf=' + tf).then(d => { const el = $('#plRows'); if (!el) return; const t = U();
+    if (d.error) { el.innerHTML = `<p class="small muted">${t.loadFail}</p>`; return; }
+    el.innerHTML = d.rows.length ? `<table><tr><th>#</th><th>${t.plName}</th><th class="n">${t.thCalls}</th><th class="n">${t.thAcc}</th></tr>${d.rows.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.name)}</td><td class="n">${r.n}</td><td class="n">${pctTxt(r.ok / r.n, 1)}</td></tr>`).join('')}</table>` : `<p class="small muted">${t.plEmpty(tfL(tf))}</p>`; });
+}
+async function renderAccount() {
+  stopLive(); SCREEN = 'account'; const t = U(), s = set(), tf = s.plTf || '1d';
+  app.innerHTML = `<section class="card"><p class="small muted">…</p></section>`;
+  await loadMe(); if (SCREEN !== 'account') return;
+  let top;
+  if (ME.user) {
+    const st = ME.stats.slice().sort((a, b) => ['15m', '1h', '4h', '1d'].indexOf(a.tf) - ['15m', '1h', '4h', '1d'].indexOf(b.tf));
+    top = `<section class="card"><h3>${t.accTitle}</h3>
+      <h2 style="margin-bottom:2px">${esc(ME.user.name)} ${ME.user.role === 'admin' ? `<span class="tagr gold">admin</span>` : ''}</h2>
+      <div class="setting"><label>${t.accName}<span class="hint">${t.accNameHint}</span></label><div class="row" style="flex-wrap:nowrap"><input id="nm" value="${esc(ME.user.name)}" maxlength="20" style="width:130px"><button class="chip on" id="nmSave">OK</button></div></div>
+      <h3 style="margin-top:14px">${t.accRanked}</h3>
+      ${st.length ? `<table><tr><th></th><th class="n">${t.thCalls}</th><th class="n">${t.thAcc}</th></tr>${st.map(r => `<tr><td>${tfL(r.tf)}</td><td class="n">${r.n}</td><td class="n">${pctTxt(r.ok / r.n, 1)}</td></tr>`).join('')}</table>` : `<p class="small muted">${t.accNoRanked}</p>`}
+      <p class="small muted" style="margin-top:8px">${t.accRule}</p>
+      ${ME.user.role === 'admin' ? `<button class="btn" style="margin-top:10px" data-go="admin">${t.admTitle}</button>` : ''}
+      <button class="btn ghost" style="margin-top:8px" id="lo">${t.logout}</button>
+      <button class="btn ghost" style="margin-top:8px" id="del">${t.delAcc}</button>
+      <p class="small muted" style="margin-top:10px">${t.privacy}</p></section>`;
+  } else {
+    top = `<section class="card"><h3>${t.accTitle}</h3>
+      ${ME.clientId ? `<p>${t.accWhy}</p><div id="gbtn" style="min-height:44px"></div><p class="small down" id="gerr"></p>` : `<p>${t.accOff}</p>`}
+      <p class="small muted" style="margin-top:10px">${t.privacy}</p></section>`;
+  }
+  app.innerHTML = top + playersCard(tf) + `<button class="btn ghost" data-go="home">${t.back}</button>`;
+  loadPlayers(tf);
+  $('#plTf').onclick = e => { const b = e.target.closest('button'); if (!b) return; s.plTf = b.dataset.v; save(); renderAccount(); };
+  if (ME.user) {
+    $('#nmSave').onclick = async () => { const d = await apiPost('/api/me/name', { name: $('#nm').value }); if (d.error) toast(d.error); else renderAccount(); };
+    $('#lo').onclick = async () => { await apiPost('/api/logout'); renderAccount(); };
+    $('#del').onclick = async () => { if (!confirm(t.delConfirm)) return; await api('/api/me', { method: 'DELETE' }); renderAccount(); };
+  } else if (ME.clientId) gsi(() => {
+    if (!$('#gbtn')) return;
+    google.accounts.id.initialize({ client_id: ME.clientId, callback: async resp => { const d = await apiPost('/api/auth/google', { credential: resp.credential }); if (d.error) { const e = $('#gerr'); if (e) e.textContent = d.error; } else renderAccount(); } });
+    google.accounts.id.renderButton($('#gbtn'), { theme: 'filled_black', size: 'large', shape: 'pill', locale: lang() });
+  });
+}
+async function renderAdmin() {
+  stopLive(); SCREEN = 'admin'; const t = U();
+  const d = await api('/api/admin/overview'); if (SCREEN !== 'admin') return;
+  if (d.error) { app.innerHTML = `<section class="card"><p>${t.admDenied}</p></section><button class="btn ghost" data-go="account">${t.back}</button>`; return; }
+  const day = x => x ? new Date(x * 1000).toLocaleDateString(loc(), { day: 'numeric', month: 'short', year: 'numeric' }) : '–';
+  app.innerHTML = `<section class="card"><h3>${t.admTitle}</h3>
+    <div class="kpis"><div class="kpi"><b>${d.counts.users}</b><span>${t.admUsers}</span></div><div class="kpi"><b>${d.counts.answers}</b><span>${t.admAnswers}</span></div><div class="kpi"><b>${d.counts.scored}</b><span>${t.admScored}</span></div></div></section>
+  <section class="card"><h3>${t.admBots}</h3>
+    <div class="row" style="flex-wrap:nowrap"><input id="bn" placeholder="${t.admBotName}" maxlength="20" style="flex:1;min-width:0"><button class="chip on" id="bAdd">${t.admBotAdd}</button></div>
+    <div id="bKey"></div>
+    <table style="margin-top:10px"><tr><th>${t.plName}</th><th>${t.admKind}</th><th></th></tr>${d.bots.map(b => `<tr><td>${b.house ? (t.labTools[b.name] || esc(b.name)) : esc(b.name)}</td><td class="muted">${b.house ? t.admHouse : t.admExt}</td><td class="n">${b.house ? '' : `<button class="chip" data-del="${b.id}">✕</button>`}</td></tr>`).join('')}</table>
+    <p class="small muted" style="margin-top:8px">${t.admBotNote}</p></section>
+  <section class="card"><h3>${t.admUsers}</h3><table><tr><th>${t.plName}</th><th>${t.thDate}</th><th class="n">${t.thCalls}</th><th class="n">${t.thAcc}</th></tr>${d.users.map(u => `<tr><td>${esc(u.name)}${u.role === 'admin' ? ' <span class="tagr gold">admin</span>' : ''}</td><td class="muted">${day(u.created)}</td><td class="n">${u.n}</td><td class="n">${u.n ? pctTxt(u.ok / u.n, 1) : '–'}</td></tr>`).join('')}</table></section>
+  <button class="btn ghost" data-go="account">${t.back}</button>`;
+  $('#bAdd').onclick = async () => { const r = await apiPost('/api/admin/bot', { name: $('#bn').value }); if (r.error) { toast(r.error); return; } await renderAdmin(); const k = $('#bKey'); if (k) k.innerHTML = `<div class="lesson"><b>${esc(r.name)}</b><br><span class="mono small" style="word-break:break-all">${r.key}</span><br><span class="muted small">${t.admKeyNote}</span></div>`; };
+  app.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (!confirm(t.admDelConfirm)) return; await api('/api/admin/bot?id=' + b.dataset.del, { method: 'DELETE' }); renderAdmin(); });
 }
 
 // ---------- laboratoire : classement des outils ----------
@@ -1157,4 +1273,5 @@ ST.liveOpen.forEach(scheduleCall);
 window.addEventListener('keydown', e => { if (!G || !cv || !document.body.contains(cv)) return; if (G.live) { if (e.key === 'ArrowUp') liveCall(1); if (e.key === 'ArrowDown') liveCall(-1); return; } if (G.guess != null) { if (e.key === 'Enter' && $('#nextB')) $('#nextB').click(); return; } if (e.key === 'ArrowUp') onGuess(1); if (e.key === 'ArrowDown') onGuess(-1); });
 chrome();
 renderHome();
+loadMe();
 })();

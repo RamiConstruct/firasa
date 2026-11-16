@@ -3,7 +3,7 @@ const N = +process.argv[2] || 300, q = process.argv[3] || '';
 (async () => {
   const stats = {}, H = 5; let ok = 0, tot = 0, errs = 0, withFx = 0, withBook = 0;
   for (let k = 0; k < N; k++) {
-    const R = await (await fetch('http://localhost:8787/api/round?' + q)).json();
+    const R = await (await fetch('http://localhost:8787/api/round?full=1&' + q)).json();
     if (R.error) { errs++; continue; }
     R.vis = 120;
     try {

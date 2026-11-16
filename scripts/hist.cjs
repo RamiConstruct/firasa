@@ -8,7 +8,7 @@ async function run(tf, n, book) {
   const C = out[tf] = out[tf] || Object.fromEntries(HS.map(h => [h, { base: [0, 0], sig: {} }]));
   let done = 0, inflight = [];
   const one = async () => {
-    const R = await (await fetch(`http://localhost:8787/api/round?tfs=${tf}${book ? '&book=1' : ''}`)).json();
+    const R = await (await fetch(`http://localhost:8787/api/round?full=1&tfs=${tf}${book ? '&book=1' : ''}`)).json();
     if (R.error) return;
     R.vis = 120;
     const S = E.signals(R, E.indicators(R, R.ctx, R.ctx - R.vis));
