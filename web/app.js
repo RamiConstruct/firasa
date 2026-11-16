@@ -124,8 +124,15 @@ const UI = {
     labCI: (a, b) => `intervalle ${a} à ${b}`,
     labLine: (n, cov, tr) => `${n} appels (${cov} des bougies) · avant 2024 : ${tr}`,
     labGain: (g, n) => `Gain moyen par appel : brut ${g}, net ${n}.`,
-    labSoon: "Ajout d'outils par d'autres personnes : pas encore disponible.",
-    labTools: { up: 'Toujours « plus haut »', mom: 'Momentum 10 bougies (suivre)', amom: 'Momentum 10 bougies (inverser)', ema200: "Côté de l'EMA 200", ema2050: 'EMA 20 au-dessus ou sous EMA 50', rsi: 'RSI : hausse sous 30, baisse au-dessus de 70', bb: 'Bollinger : hausse sous la bande basse, baisse au-dessus de la haute', macd: "Signe de l'histogramme MACD", flow: 'Achats au marché > 53 % ou < 47 % (suivre)', aflow: 'Achats au marché > 53 % ou < 47 % (inverser)', eng: 'Avalement (sens TA-Lib)', aeng: 'Avalement (sens inversé)', logit: 'Régression logistique (12 mesures)', logit_c: 'Régression logistique, seulement si probabilité > 53 % ou < 47 %', gb: 'Arbres boostés (12 mesures)', gb_c: 'Arbres boostés, seulement si probabilité > 53 % ou < 47 %' },
+    fwTitle: 'Classement en avant — depuis le 17 novembre 2026', bkTitle: 'Test sur le passé (2024-2026)',
+    fwIntro: h => `Chaque outil enregistre sa prévision juste après la clôture d'une bougie Kraken (16 cryptos, paires en dollars). Elle est notée ${h} bougies plus tard sur le prix de clôture Kraken, et ne peut plus être modifiée. Les 10 outils maison ont été réglés sur l'historique Binance d'avant 2024 ; ils sont calculés automatiquement chaque heure pour le 1 h, et chaque jour à partir de 00:21 UTC pour le 1 jour.`,
+    fwEmpty: tf => `Aucune prévision notée en ${tf} pour l'instant.`,
+    fwPending: n => `Prévisions en attente de notation : ${n}.`,
+    fwLine: (n, c, g) => `${n} prévisions notées sur ${c} bougies de départ · gain brut moyen ${g}.`,
+    fwCI: (a, b) => `Intervalle à 95 % : ${a} à ${b}.`, fwNoCI: 'Moins de 30 bougies de départ : pas d\'intervalle.',
+    fwNote: "Intervalle calculé par bougie de départ. Les prévisions à 5 bougies se chevauchent : l'incertitude réelle est plus grande.",
+    fwApi: "Bots extérieurs : envoi des prévisions par API (POST /api/lab/predict, dans les 10 minutes après la clôture en 1 h, 60 minutes en 1 jour). Les clés sont délivrées sur invitation pour l'instant.",
+    labTools: { up: 'Toujours « plus haut »', mom: 'Momentum 10 bougies (suivre)', amom: 'Momentum 10 bougies (inverser)', ema200: "Côté de l'EMA 200", ema2050: 'EMA 20 au-dessus ou sous EMA 50', rsi: 'RSI : hausse sous 30, baisse au-dessus de 70', bb: 'Bollinger : hausse sous la bande basse, baisse au-dessus de la haute', macd: "Signe de l'histogramme MACD", flow: 'Achats au marché > 53 % ou < 47 % (suivre)', aflow: 'Achats au marché > 53 % ou < 47 % (inverser)', eng: 'Avalement (sens TA-Lib)', aeng: 'Avalement (sens inversé)', logit: 'Régression logistique (12 mesures)', logit_c: 'Régression logistique, seulement si probabilité > 53 % ou < 47 %', logit11: 'Régression logistique (11 mesures, sans les achats au marché)', logit11_c: 'Régression logistique (11 mesures), seulement si probabilité > 53 % ou < 47 %', gb: 'Arbres boostés (12 mesures)', gb_c: 'Arbres boostés, seulement si probabilité > 53 % ou < 47 %' },
     patBtn: 'Figures de bougies : ce qui a suivi chacune', patTitle: 'Figures de bougies',
     patIntro: (n, c, h) => `Les ${n} figures de la bibliothèque TA-Lib (définitions standard), détectées sur ${c} bougies Binance : 16 cryptos, de 15 min à 1 jour, d'août 2017 au 14 novembre 2026. Pour chaque figure : nombre de cas, et % de fois où le prix était plus haut ${h} après la bougie qui termine la figure.`,
     patNote: "Vert : au moins 1,5 point au-dessus du taux de base de la même unité de temps ; rouge : au moins 1,5 point en dessous (cases d'au moins 100 cas). Les figures qui exigent un gap sont rares : sur Binance, 98,2 % des bougies 1 h du BTC ouvrent à moins de 0,1 % de la clôture précédente.",
@@ -229,8 +236,15 @@ const UI = {
     labCI: (a, b) => `interval ${a} to ${b}`,
     labLine: (n, cov, tr) => `${n} calls (${cov} of candles) · before 2024: ${tr}`,
     labGain: (g, n) => `Average gain per call: gross ${g}, net ${n}.`,
-    labSoon: 'Tools submitted by other people: not available yet.',
-    labTools: { up: 'Always "higher"', mom: '10-candle momentum (follow)', amom: '10-candle momentum (fade)', ema200: 'Side of the EMA 200', ema2050: 'EMA 20 above or below EMA 50', rsi: 'RSI: up below 30, down above 70', bb: 'Bollinger: up below the lower band, down above the upper', macd: 'Sign of the MACD histogram', flow: 'Market buys > 53% or < 47% (follow)', aflow: 'Market buys > 53% or < 47% (fade)', eng: 'Engulfing (TA-Lib direction)', aeng: 'Engulfing (reversed)', logit: 'Logistic regression (12 measures)', logit_c: 'Logistic regression, only when probability > 53% or < 47%', gb: 'Boosted trees (12 measures)', gb_c: 'Boosted trees, only when probability > 53% or < 47%' },
+    fwTitle: 'Forward leaderboard — since November 17, 2026', bkTitle: 'Test on the past (2024-2026)',
+    fwIntro: h => `Each tool records its call right after a Kraken candle closes (16 coins, US dollar pairs). It is scored ${h} candles later on the Kraken closing price, and cannot be changed afterwards. The 10 house tools were tuned on Binance history before 2024; they are computed automatically every hour for 1h, and every day from 00:21 UTC for 1D.`,
+    fwEmpty: tf => `No scored calls on ${tf} yet.`,
+    fwPending: n => `Calls waiting to be scored: ${n}.`,
+    fwLine: (n, c, g) => `${n} scored calls over ${c} starting candles · average gross gain ${g}.`,
+    fwCI: (a, b) => `95% interval: ${a} to ${b}.`, fwNoCI: 'Fewer than 30 starting candles: no interval.',
+    fwNote: 'Interval computed per starting candle. 5-candle calls overlap: the real uncertainty is larger.',
+    fwApi: 'External bots: calls are sent by API (POST /api/lab/predict, within 10 minutes of the close on 1h, 60 minutes on 1D). Keys are issued by invitation for now.',
+    labTools: { up: 'Always "higher"', mom: '10-candle momentum (follow)', amom: '10-candle momentum (fade)', ema200: 'Side of the EMA 200', ema2050: 'EMA 20 above or below EMA 50', rsi: 'RSI: up below 30, down above 70', bb: 'Bollinger: up below the lower band, down above the upper', macd: 'Sign of the MACD histogram', flow: 'Market buys > 53% or < 47% (follow)', aflow: 'Market buys > 53% or < 47% (fade)', eng: 'Engulfing (TA-Lib direction)', aeng: 'Engulfing (reversed)', logit: 'Logistic regression (12 measures)', logit_c: 'Logistic regression, only when probability > 53% or < 47%', logit11: 'Logistic regression (11 measures, without market buys)', logit11_c: 'Logistic regression (11 measures), only when probability > 53% or < 47%', gb: 'Boosted trees (12 measures)', gb_c: 'Boosted trees, only when probability > 53% or < 47%' },
     patBtn: 'Candlestick patterns: what followed each one', patTitle: 'Candlestick patterns',
     patIntro: (n, c, h) => `The ${n} patterns of the TA-Lib library (standard definitions), detected on ${c} Binance candles: 16 coins, 15m to 1D, August 2017 to November 14, 2026. For each pattern: number of cases, and % of times price was higher ${h} after the candle that completes the pattern.`,
     patNote: 'Green: at least 1.5 points above the base rate of the same timeframe; red: at least 1.5 points below (cells with at least 100 cases). Patterns that need a gap are rare: on Binance, 98.2% of BTC 1h candles open within 0.1% of the previous close.',
@@ -830,10 +844,21 @@ function renderLab() {
     <p class="small muted">${t.labMethod(M.tools * 2, dec(fee * 100, 1) + sfx())}</p>
     <p class="small">${t.labBest(tfL(tf), pctTxt(best, 1))}</p>
     <div class="seg" id="lt">${['1d', '1h'].map(x => `<button data-v="${x}" class="${tf === x ? 'on' : ''}">${tfL(x)}</button>`).join('')}</div></section>
+  <section class="card"><h3>${t.fwTitle}</h3><p class="small">${t.fwIntro(M.h)}</p><div id="fw"><p class="small muted">…</p></div><p class="small muted" style="margin:10px 0 0">${t.fwApi}</p></section>
+  <h3 style="margin:18px 2px 4px">${t.bkTitle}</h3>
   ${cards}
-  <p class="small muted" style="margin:10px 2px">${t.labSoon}</p>
   <button class="btn ghost" data-go="home">${t.back}</button>`;
   $('#lt').onclick = e => { const b = e.target.closest('button'); if (!b) return; s.labTf = b.dataset.v; save(); renderLab(); };
+  fetch('/api/lab/live').then(r => r.json()).then(d => {
+    const el = $('#fw'); if (!el || SCREEN !== 'lab') return;
+    const esc = x => String(x).replace(/[&<>"']/g, ch => '&#' + ch.charCodeAt(0) + ';');
+    const rs = d.rows.filter(r => r.tf === tf).sort((a, b) => b.k / b.n - a.k / a.n);
+    const pend = `<p class="small muted" style="margin:8px 0 0">${t.fwPending(d.pending.toLocaleString(loc()))}</p>`;
+    if (!rs.length) { el.innerHTML = `<p class="small">${t.fwEmpty(tfL(tf))}</p>` + pend; return; }
+    el.innerHTML = rs.map((r, i) => { const a = r.k / r.n;
+      return `<div class="call" style="display:block"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${i + 1}. ${r.house ? (t.labTools[r.code] || esc(r.code)) : esc(r.name)}</b><b class="mono" style="white-space:nowrap;margin-left:10px">${pctTxt(a, 1)}</b></div>
+      <div class="small muted">${t.fwLine(r.n.toLocaleString(loc()), r.t.toLocaleString(loc()), fmtPct(r.gross * 100, 3))} ${r.t >= 30 ? t.fwCI(pctTxt(Math.max(0, a - 1.96 * r.se), 1), pctTxt(Math.min(1, a + 1.96 * r.se), 1)) : t.fwNoCI}</div></div>`; }).join('') + pend + `<p class="small muted" style="margin:6px 0 0">${t.fwNote}</p>`;
+  }).catch(() => { const el = $('#fw'); if (el) el.innerHTML = `<p class="small muted">${t.loadFail}</p>`; });
 }
 
 // ---------- figures de bougies (TA-Lib) ----------

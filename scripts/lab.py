@@ -35,8 +35,12 @@ for tf in ('1d','1h'):
     y=(fr>0).astype(int); tr=t<SPLIT-H*STEP[tf]; te=t>=SPLIT
     Xc=np.clip(X,np.nanpercentile(X[tr],0.5,axis=0),np.nanpercentile(X[tr],99.5,axis=0))
     sc=StandardScaler().fit(Xc[tr]); lr=LogisticRegression(C=0.1,max_iter=300).fit(sc.transform(Xc[tr]),y[tr]); p=lr.predict_proba(sc.transform(Xc))[:,1]
+    out.setdefault('_logit',{})[tf]=dict(lo=np.nanpercentile(X[tr],0.5,axis=0).tolist(),hi=np.nanpercentile(X[tr],99.5,axis=0).tolist(),mean=sc.mean_.tolist(),scale=sc.scale_.tolist(),coef=lr.coef_[0].tolist(),b=float(lr.intercept_[0]))
     gb=HistGradientBoostingClassifier(max_iter=200,learning_rate=0.05,max_leaf_nodes=15,l2_regularization=1.0,random_state=0).fit(Xc[tr],y[tr]); q=gb.predict_proba(Xc)[:,1]
     T['logit']=np.where(p>0.5,1,-1); T['logit_c']=np.where(p>0.53,1,np.where(p<0.47,-1,0))
+    NF=[i for i in range(X.shape[1]) if i!=9]; sc2=StandardScaler().fit(Xc[tr][:,NF]); lr2=LogisticRegression(C=0.1,max_iter=300).fit(sc2.transform(Xc[tr][:,NF]),y[tr]); p2=lr2.predict_proba(sc2.transform(Xc[:,NF]))[:,1]
+    T['logit11']=np.where(p2>0.5,1,-1); T['logit11_c']=np.where(p2>0.53,1,np.where(p2<0.47,-1,0))
+    out['_logit'][tf]=dict(lo=np.nanpercentile(X[tr],0.5,axis=0)[NF].tolist(),hi=np.nanpercentile(X[tr],99.5,axis=0)[NF].tolist(),mean=sc2.mean_.tolist(),scale=sc2.scale_.tolist(),coef=lr2.coef_[0].tolist(),b=float(lr2.intercept_[0]))
     T['gb']=np.where(q>0.5,1,-1); T['gb_c']=np.where(q>0.53,1,np.where(q<0.47,-1,0))
     month=np.array([x//(86400*30.4375) for x in t]).astype(int); res=[]; NT=len(T)*2; alpha=0.05/NT
     for k,d in T.items():
@@ -55,4 +59,5 @@ for tf in ('1d','1h'):
     print(tf,'train',int(tr.sum()),'test',int(te.sum()))
     for r in res: print(f"  {r['id']:9s} n={r['n']:>7} acc={r['acc']*100:5.1f} [{r['lo']*100:4.1f};{r['hi']*100:4.1f}] train={r['accTrain']*100:5.1f} cov={r['cov']*100:4.0f}% brut={r['gross']*100:+.3f}% net={r['net']*100:+.3f}%")
 out['_']=dict(h=H,fee=FEE,split='2024-01-01',end='2026-11-14',tools=len(T),syms=len(SYMS),alpha=0.05/ (len(T)*2))
+json.dump(out.pop('_logit'),open('data/logit.json','w'))
 json.dump(out,open('data/lab.json','w'),separators=(',',':'))
