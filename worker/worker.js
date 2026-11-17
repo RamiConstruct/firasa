@@ -170,8 +170,8 @@ async function klines(sym, tf, now) {
   if (!r.ok) return { error: 'kraken ' + r.status };
   const d = await r.json(); if (d.error && d.error.length) return { error: 'kraken ' + d.error[0] };
   const key = Object.keys(d.result).find(k => k !== 'last'), rows = d.result[key], step = LSTEP[tf];
-  const K = { t: [], h: [], l: [], c: [], v: [] };
-  for (const k of rows) { if (k[0] + step > now) continue; K.t.push(k[0]); K.h.push(+k[2]); K.l.push(+k[3]); K.c.push(+k[4]); K.v.push(+k[6]); }
+  const K = { t: [], o: [], h: [], l: [], c: [], v: [] };
+  for (const k of rows) { if (k[0] + step > now) continue; K.t.push(k[0]); K.o.push(+k[1]); K.h.push(+k[2]); K.l.push(+k[3]); K.c.push(+k[4]); K.v.push(+k[6]); }
   return { K };
 }
 
@@ -223,6 +223,14 @@ async function runSym(env, sym, tf, now) {
   if (fresh) {
     const L = await env.DATA.get('logit', { type: 'json', cacheTtl: 3600 });
     const S = houseSignals(K, L && L[tf]);
+    if (tf === '1d') {
+      const r0 = K.c[D] / K.o[D] - 1;
+      if (Math.abs(r0) >= 0.05) {
+        S.big5 = Math.sign(r0);
+        const nc = await env.DB.prepare('SELECT COUNT(*) AS c FROM news WHERE ts >= ? AND ts < ? AND coins LIKE ?').bind(t0, t0 + step, '%,' + sym + ',%').first();
+        if (nc && nc.c >= 3) S.news5 = Math.sign(r0);
+      }
+    }
     const bots = (await env.DB.prepare('SELECT id, code FROM bots WHERE house = 1').all()).results;
     for (const b of bots) { const d = S[b.code]; if (d === 1 || d === -1) { st.push(env.DB.prepare('INSERT OR IGNORE INTO preds (bot, sym, tf, t0, dir) VALUES (?, ?, ?, ?, ?)').bind(b.id, sym, tf, t0, d)); made++; } }
   }
@@ -242,11 +250,13 @@ async function runSym(env, sym, tf, now) {
   return { sym, tf, t0, fresh, made, scored };
 }
 function tick(env, ms) {
-  const d = new Date(ms), m = d.getUTCMinutes(), now = Math.floor(ms / 1000);
-  if (m >= 1 && m <= 16) return runSym(env, LSYMS[m - 1], '1h', now);
-  if (d.getUTCHours() === 0 && m >= 21 && m <= 36) return runSym(env, LSYMS[m - 21], '1d', now);
-  if (m === 40) return env.DB.batch([env.DB.prepare('DELETE FROM used WHERE exp < ?').bind(now), env.DB.prepare('DELETE FROM sessions WHERE exp < ?').bind(now)]);
-  return Promise.resolve(null);
+  const d = new Date(ms), m = d.getUTCMinutes(), now = Math.floor(ms / 1000), jobs = [];
+  if (m >= 1 && m <= 16) jobs.push(runSym(env, LSYMS[m - 1], '1h', now));
+  if (d.getUTCHours() === 0 && m >= 21 && m <= 36) jobs.push(runSym(env, LSYMS[m - 21], '1d', now));
+  if (m === 40) jobs.push(env.DB.batch([env.DB.prepare('DELETE FROM used WHERE exp < ?').bind(now), env.DB.prepare('DELETE FROM sessions WHERE exp < ?').bind(now), env.DB.prepare('DELETE FROM news WHERE ts < ?').bind(now - 30 * 86400), env.DB.prepare('DELETE FROM hist WHERE t < ?').bind(now - 8 * 86400)]));
+  jobs.push(fetchFeed(env, Math.floor(ms / 60000), now).then(() => translatePending(env, 4)));
+  jobs.push(pulseTick(env, Math.floor(ms / 60000), now));
+  return Promise.allSettled(jobs);
 }
 async function sha256(s) {
   const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
@@ -277,6 +287,8 @@ async function labPredict(request, env) {
 async function labAdmin(request, env, url) {
   const p = url.pathname;
   if (p === '/admin/probe') { const r = await fetch(url.searchParams.get('u'), url.searchParams.get('ua') ? { headers: { 'user-agent': url.searchParams.get('ua'), accept: 'application/json' } } : undefined); return json({ status: r.status, body: (await r.text()).slice(0, 160) }); }
+  if (p === '/admin/pulse') { const now = Math.floor(Date.now() / 1000), k = url.searchParams.get('k'); if (!CONN[k]) return json({ error: 'connecteur inconnu' }, 400); await runConn(env, k, now); return json(await env.DB.prepare('SELECT k, status, at, substr(v, 1, 200) AS v FROM snap WHERE k = ?').bind(k).first()); }
+  if (p === '/admin/news') { const now = Math.floor(Date.now() / 1000), f = await fetchFeed(env, +url.searchParams.get('i'), now); return json({ feed: f, translated: await translatePending(env, +url.searchParams.get('tr') || 0) }); }
   if (p === '/admin/tick') return json(await runSym(env, url.searchParams.get('sym'), url.searchParams.get('tf'), Math.floor(Date.now() / 1000)));
   if (p === '/admin/signals') {
     const kr = await klines(url.searchParams.get('sym'), url.searchParams.get('tf'), Math.floor(Date.now() / 1000)); if (kr.error) return json(kr, 502); const K = kr.K;
@@ -294,6 +306,156 @@ async function labAdmin(request, env, url) {
     return json({ deleted: b.id });
   }
   return null;
+}
+
+// ---------- actualités : titres et liens de flux RSS publics, en plusieurs langues ----------
+const FEEDS = [
+  ['en', 'CoinDesk', 'https://www.coindesk.com/arc/outboundfeeds/rss/'], ['zh', 'PANews', 'https://www.panewslab.com/rss.xml'],
+  ['fr', 'Journal du Coin', 'https://journalducoin.com/feed/'], ['en', 'Cointelegraph', 'https://cointelegraph.com/rss'],
+  ['es', 'CriptoNoticias', 'https://www.criptonoticias.com/feed/'], ['ko', 'TokenPost', 'https://www.tokenpost.kr/rss'],
+  ['en', 'Decrypt', 'https://decrypt.co/feed'], ['de', 'BTC-ECHO', 'https://www.btc-echo.de/feed/'],
+  ['ru', 'ForkLog', 'https://forklog.com/feed/'], ['en', 'The Block', 'https://www.theblock.co/rss.xml'],
+  ['ja', 'CoinPost', 'https://coinpost.jp/?feed=rss2'], ['fr', 'Cryptoast', 'https://cryptoast.fr/feed/'],
+  ['pt', 'Livecoins', 'https://livecoins.com.br/feed/'], ['en', 'Bitcoin Magazine', 'https://bitcoinmagazine.com/feed'],
+  ['it', 'Cryptonomist', 'https://cryptonomist.ch/feed/'], ['zh', 'Odaily', 'https://rss.odaily.news/rss/newsflash'],
+  ['tr', 'Koin Bülteni', 'https://koinbulteni.com/feed'], ['en', 'CryptoSlate', 'https://cryptoslate.com/feed/'],
+  ['nl', 'Crypto Insiders', 'https://www.crypto-insiders.nl/feed/'], ['pl', 'Bitcoin.pl', 'https://bitcoin.pl/feed'],
+  ['en', 'Federal Reserve', 'https://www.federalreserve.gov/feeds/press_all.xml', 1]
+];
+const OFFICIAL = "('Federal Reserve', 'Binance — listings', 'Binance — delistings')";
+const COINKW = {
+  BTC: ['bitcoin', 'btc', 'биткоин', 'биткойн', 'ビットコイン', '比特币', '비트코인'], ETH: ['ethereum', 'ether', 'eth', 'эфириум', 'イーサリアム', '以太坊', '이더리움'],
+  BNB: ['bnb', 'binance coin'], SOL: ['solana', 'ソラナ', '솔라나'], XRP: ['xrp', 'ripple', 'リップル', '리플'], ADA: ['cardano', 'カルダノ'],
+  DOGE: ['dogecoin', 'doge', 'ドージ', '도지코인', '狗狗币'], AVAX: ['avalanche', 'avax'], LINK: ['chainlink'], LTC: ['litecoin', 'ltc', 'ライトコイン', '莱特币'],
+  DOT: ['polkadot'], TRX: ['tron', 'trx'], ATOM: ['cosmos hub', 'cosmos (atom)'], NEAR: ['near protocol'], PAXG: ['paxg', 'pax gold'], ETC: ['ethereum classic']
+};
+function tagCoins(text) {
+  const s = ' ' + String(text || '').toLowerCase() + ' ', out = [];
+  for (const sym in COINKW) {
+    for (const kw of COINKW[sym]) {
+      const i = s.indexOf(kw); if (i < 0) continue;
+      if (/^[a-z0-9 ()]+$/.test(kw)) { const a = s[i - 1], b = s[i + kw.length]; if (/[a-z0-9]/.test(a) || /[a-z0-9]/.test(b)) continue; }
+      out.push(sym); break;
+    }
+  }
+  return out;
+}
+function decodeEnt(s) {
+  const cp = n => { try { return String.fromCodePoint(n); } catch (e) { return ''; } };
+  return s.replace(/&#x([0-9a-f]+);/gi, (m, h) => cp(parseInt(h, 16))).replace(/&#(\d+);/g, (m, d) => cp(+d)).replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
+}
+function parseFeed(xml, now, days) {
+  const out = [], items = xml.slice(0, 160000).split(/<item[\s>]/i).slice(1, 41);
+  for (const it of items) {
+    const g = tag => { const m = it.match(new RegExp('<' + tag + '[^>]*>([\\s\\S]*?)</' + tag + '>', 'i')); return m ? decodeEnt(decodeEnt(m[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')).replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim() : ''; };
+    const title = g('title').slice(0, 300), url = g('link'); let ts = Math.floor(Date.parse(g('pubDate')) / 1000);
+    if (!title || !/^https?:\/\//.test(url) || url.length > 600) continue;
+    if (!Number.isFinite(ts) || ts > now) ts = now;
+    if (ts < now - days * 86400) continue;
+    out.push({ title, url, ts });
+  }
+  return out;
+}
+async function fetchFeed(env, i, now) {
+  const f = FEEDS[i % FEEDS.length]; let status = 0, n = 0;
+  try {
+    const r = await fetch(f[2], { headers: { 'user-agent': 'FirasaNewsBot/1.0 (+https://firasa.labotory.site)', accept: 'application/rss+xml, application/xml, text/xml' } });
+    status = r.status;
+    if (r.ok) {
+      const items = parseFeed(await r.text(), now, f[3] ? 30 : 3); n = items.length;
+      const st = items.map(x => env.DB.prepare('INSERT OR IGNORE INTO news (url, src, lang, title, ts, coins, tr) VALUES (?, ?, ?, ?, ?, ?, 0)').bind(x.url, f[1], f[0], x.title, x.ts, ',' + tagCoins(x.title).join(',') + ','));
+      if (st.length) await env.DB.batch(st);
+    }
+  } catch (e) { status = -1; }
+  await env.DB.prepare('INSERT INTO feedlog (src, at, status, n) VALUES (?, ?, ?, ?) ON CONFLICT (src) DO UPDATE SET at = excluded.at, status = excluded.status, n = excluded.n').bind(f[1], now, status, n).run();
+  return { src: f[1], status, n };
+}
+async function translatePending(env, max) {
+  if (!env.AI) return 0;
+  const rows = (await env.DB.prepare('SELECT url, lang, title, coins, tr FROM news WHERE tr <= 0 AND tr > -3 ORDER BY ts DESC LIMIT ?').bind(max).all()).results; let done = 0;
+  for (const r of rows) {
+    try {
+      const tr = async to => r.lang === to ? null : String((await env.AI.run('@cf/meta/m2m100-1.2b', { text: r.title, source_lang: r.lang, target_lang: to })).translated_text || '').slice(0, 400) || null;
+      const en = await tr('en'), fr = await tr('fr');
+      const coins = Array.from(new Set(r.coins.split(',').filter(Boolean).concat(tagCoins(en || ''))));
+      await env.DB.prepare('UPDATE news SET en = ?, fr = ?, coins = ?, tr = 1 WHERE url = ?').bind(en, fr, ',' + coins.join(',') + ',', r.url).run(); done++;
+    } catch (e) { await env.DB.prepare('UPDATE news SET tr = tr - 1 WHERE url = ?').bind(r.url).run(); break; }
+  }
+  return done;
+}
+async function newsApi(env, url) {
+  const coin = url.searchParams.get('coin'), ok = coin && COINKW[coin], off = url.searchParams.get('off') === '1';
+  const q = 'SELECT src, lang, title, en, fr, ts, coins, url FROM news WHERE src ' + (off ? '' : 'NOT ') + 'IN ' + OFFICIAL + (ok ? ' AND coins LIKE ?' : '') + ' ORDER BY ts DESC LIMIT 80';
+  const rows = (await (ok ? env.DB.prepare(q).bind('%,' + coin + ',%') : env.DB.prepare(q)).all()).results;
+  const feeds = (await env.DB.prepare('SELECT src, at, status, n FROM feedlog').all()).results;
+  const c = await env.DB.prepare('SELECT COUNT(*) AS n, MIN(ts) AS first FROM news').first();
+  const open = (await env.DB.prepare("SELECT b.code, p.sym, p.t0, p.dir FROM preds p JOIN bots b ON b.id = p.bot WHERE b.house = 1 AND b.code IN ('big5', 'news5') AND p.tf = '1d' ORDER BY p.t0 DESC LIMIT 60").all()).results;
+  return new Response(JSON.stringify({ rows, feeds, open, h: LH, total: c.n, first: c.first, sources: FEEDS.filter(f => !f[3]).map(f => [f[0], f[1]]) }), { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=60' } });
+}
+
+// ---------- données en direct : API publiques interrogées par la tâche planifiée ----------
+const PSYMS = ['BTC', 'ETH', 'SOL'];
+async function getJ(u) { const r = await fetch(u, { headers: { 'user-agent': 'FirasaBot/1.0 (+https://firasa.labotory.site)', accept: 'application/json' } }); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }
+const CONN = {
+  kraken: { every: 1, off: 0, run: async () => {
+    const d = await getJ('https://api.kraken.com/0/public/Ticker?pair=' + LSYMS.map(s => KPAIR[s]).join(','));
+    if (d.error && d.error.length) throw new Error(String(d.error[0])); const out = {};
+    for (const s of LSYMS) { const k = KPAIR[s], r = d.result[k] || d.result['X' + k.slice(0, -3) + 'ZUSD']; if (r) out[s] = [+r.c[0], +r.o, +r.v[1]]; }
+    return { v: out };
+  } },
+  fng: { every: 30, off: 7, run: async () => { const d = (await getJ('https://api.alternative.me/fng/?limit=1')).data[0]; return { v: { x: +d.value, label: d.value_classification, day: +d.timestamp }, h: { fng: +d.value } }; } },
+  deribit: { every: 5, off: 1, run: async () => {
+    const ix = async n => (await getJ('https://www.deribit.com/api/v2/public/get_index_price?index_name=' + n)).result.index_price;
+    const b = await ix('btcdvol_usdc'), e = await ix('ethdvol_usdc'), t = (await getJ('https://www.deribit.com/api/v2/public/ticker?instrument_name=BTC-PERPETUAL')).result;
+    return { v: { dvolBTC: b, dvolETH: e, fund8h: t.funding_8h, oiUsd: t.open_interest }, h: { dvol_BTC: b, dvol_ETH: e, doi_BTC: t.open_interest } };
+  } },
+  okx: { every: 5, off: 2, run: async () => {
+    const v = {}, h = {};
+    for (const s of PSYMS) {
+      const f = (await getJ('https://www.okx.com/api/v5/public/funding-rate?instId=' + s + '-USDT-SWAP')).data[0], o = (await getJ('https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=' + s + '-USDT-SWAP')).data[0];
+      v[s] = { fund: +f.fundingRate, next: +f.fundingTime, oiUsd: +o.oiUsd }; h['fund_' + s] = +f.fundingRate; h['oi_' + s] = +o.oiUsd;
+    }
+    return { v, h };
+  } },
+  mempool: { every: 5, off: 3, run: async () => { const f = await getJ('https://mempool.space/api/v1/fees/recommended'), b = await getJ('https://mempool.space/api/blocks/tip/height'); return { v: { fast: f.fastestFee, hour: f.hourFee, height: +b }, h: { fee: f.fastestFee } }; } },
+  polymarket: { every: 5, off: 4, run: async () => {
+    const d = await getJ('https://gamma-api.polymarket.com/markets?limit=60&active=true&closed=false&order=volume24hr&ascending=false&tag_id=21'), out = [];
+    for (const m of d) {
+      let o, p; try { o = JSON.parse(m.outcomes); p = JSON.parse(m.outcomePrices).map(Number); } catch (e) { continue; }
+      if (!o || o.length !== 2 || !(p[0] >= 0.05 && p[0] <= 0.95) || !/^[a-z0-9-]+$/.test(m.slug || '')) continue;
+      out.push({ q: String(m.question).slice(0, 200), o: [String(o[0]).slice(0, 20), String(o[1]).slice(0, 20)], p: p[0], vol: Math.round(+m.volume24hr), end: m.endDate, slug: m.slug });
+      if (out.length >= 15) break;
+    }
+    return { v: out };
+  } },
+  trending: { every: 15, off: 6, run: async () => { const d = await getJ('https://api.coingecko.com/api/v3/search/trending'); return { v: d.coins.slice(0, 10).map(c => ({ name: String(c.item.name).slice(0, 40), sym: String(c.item.symbol).slice(0, 12), rank: c.item.market_cap_rank || null })) }; } },
+  binance: { every: 5, off: 0, run: async (env, now) => {
+    const d = await getJ('https://www.binance.com/bapi/composite/v1/public/cms/article/list/query?type=1&pageNo=1&pageSize=10'), st = []; let n = 0;
+    for (const c of d.data.catalogs) {
+      if (c.catalogId !== 48 && c.catalogId !== 161) continue;
+      for (const a of c.articles) {
+        const ts = Math.floor(a.releaseDate / 1000); if (!(ts > now - 14 * 86400) || !/^[a-z0-9]+$/.test(a.code)) continue; n++;
+        st.push(env.DB.prepare('INSERT OR IGNORE INTO news (url, src, lang, title, ts, coins, tr) VALUES (?, ?, ?, ?, ?, ?, 0)').bind('https://www.binance.com/en/support/announcement/' + a.code, c.catalogId === 48 ? 'Binance — listings' : 'Binance — delistings', 'en', String(a.title).slice(0, 300), Math.min(ts, now), ',' + tagCoins(a.title).join(',') + ','));
+      }
+    }
+    if (st.length) await env.DB.batch(st);
+    return { v: { n } };
+  } }
+};
+async function runConn(env, k, now) {
+  let status = 200, res = null;
+  try { res = await CONN[k].run(env, now); } catch (e) { status = /^HTTP \d+$/.test(e.message) ? +e.message.slice(5) : -1; }
+  if (!res) return env.DB.prepare('INSERT INTO snap (k, v, at, status, tried) VALUES (?, NULL, NULL, ?, ?) ON CONFLICT (k) DO UPDATE SET status = excluded.status, tried = excluded.tried').bind(k, status, now).run();
+  const st = [env.DB.prepare('INSERT INTO snap (k, v, at, status, tried) VALUES (?, ?, ?, 200, ?) ON CONFLICT (k) DO UPDATE SET v = excluded.v, at = excluded.at, status = 200, tried = excluded.tried').bind(k, JSON.stringify(res.v), now, now)];
+  if (res.h) for (const s in res.h) if (Number.isFinite(res.h[s])) st.push(env.DB.prepare('INSERT OR IGNORE INTO hist (k, t, x) VALUES (?, ?, ?)').bind(s, now - now % 3600, res.h[s]));
+  return env.DB.batch(st);
+}
+function pulseTick(env, minute, now) { const jobs = []; for (const k in CONN) if (minute % CONN[k].every === CONN[k].off % CONN[k].every) jobs.push(runConn(env, k, now)); return Promise.allSettled(jobs); }
+async function pulseApi(env) {
+  const now = Math.floor(Date.now() / 1000), h0 = now - now % 3600 - 86400;
+  const snap = (await env.DB.prepare('SELECT k, v, at, status, tried FROM snap').all()).results.map(r => ({ k: r.k, v: r.v ? JSON.parse(r.v) : null, at: r.at, status: r.status, tried: r.tried }));
+  const ago = {}; for (const r of (await env.DB.prepare('SELECT k, x FROM hist WHERE t = ?').bind(h0).all()).results) ago[r.k] = r.x;
+  return new Response(JSON.stringify({ now, snap, ago, every: Object.fromEntries(Object.keys(CONN).map(k => [k, CONN[k].every])) }), { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=20' } });
 }
 
 // ---------- comptes (Google), sessions, manches notées côté serveur ----------
@@ -466,6 +628,8 @@ export default {
     if (p === '/api/answer') return answer(request, env, url, ctx);
     if (p === '/api/me' || p === '/api/players' || p === '/api/logout' || p.startsWith('/api/auth/') || p.startsWith('/api/me/') || p.startsWith('/api/admin/')) return accounts(request, env, url);
     if (p === '/api/lab/live') return labLive(env);
+    if (p === '/api/news') return newsApi(env, url);
+    if (p === '/api/pulse') return pulseApi(env);
     if (p === '/api/lab/predict') return labPredict(request, env);
     if (p === '/api/meta') {
       const m = await getMeta(env);
@@ -474,7 +638,7 @@ export default {
       for (const [s, v] of Object.entries(m.syms)) syms[s] = { name: NAMES[s] || s, tfs: Object.keys(v.tf), fx: !!v.fx, bookStart: v.bookStart || null, since: v.since };
       return new Response(JSON.stringify({ version: m.version, syms, candles: m.candles }), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=600' } });
     }
-    if ((p === '/admin/tick' || p === '/admin/bot' || p === '/admin/signals' || p === '/admin/probe') && env.ADMIN_TOKEN) {
+    if ((p === '/admin/tick' || p === '/admin/bot' || p === '/admin/signals' || p === '/admin/probe' || p === '/admin/news' || p === '/admin/pulse') && env.ADMIN_TOKEN) {
       if (request.headers.get('authorization') !== 'Bearer ' + env.ADMIN_TOKEN) return new Response('non', { status: 401 });
       const r = await labAdmin(request, env, url); if (r) return r;
     }

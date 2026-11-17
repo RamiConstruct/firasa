@@ -1,7 +1,7 @@
 import http from 'http'; import fs from 'fs';
 import W from '../worker/worker.js';
 import { mockD1 } from './d1mock.mjs';
-const env = { DEV_FULL: 1, DB: mockD1(), TEST_JWKS: fs.existsSync('/tmp/test_jwks.json') ? JSON.parse(fs.readFileSync('/tmp/test_jwks.json')) : null, DATA: { async get(key, opt) {
+const env = { DEV_FULL: 1, ADMIN_TOKEN: 'dev', AI: { run: async (m, a) => ({ translated_text: '[' + a.target_lang + '] ' + a.text }) }, DB: mockD1(), TEST_JWKS: fs.existsSync('/tmp/test_jwks.json') ? JSON.parse(fs.readFileSync('/tmp/test_jwks.json')) : null, DATA: { async get(key, opt) {
   const type = typeof opt === 'string' ? opt : (opt && opt.type) || 'text';
   let p = key === 'meta' ? 'data/pack/meta.json' : key === 'html' ? 'dist/index.html' : `data/pack/${key}.bin`;
   if (!fs.existsSync(p)) return null;

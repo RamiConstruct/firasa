@@ -129,6 +129,33 @@ const UI = {
     admBots: 'Bots', admBotName: 'Nom du bot', admBotAdd: 'Créer une clé', admKind: 'Type', admHouse: 'maison', admExt: 'extérieur',
     admBotNote: "Un bot extérieur envoie ses prévisions avec sa clé (POST /api/lab/predict). Supprimer un bot efface aussi ses prévisions et ses scores.",
     admKeyNote: "Copie cette clé maintenant : seule son empreinte est enregistrée, elle ne sera plus affichée.", admDelConfirm: 'Supprimer ce bot, ses prévisions et ses scores ?',
+    hubBtn: '● Données en direct : marché, actualités, annonces', hubTabs: { market: 'Marché', news: 'Actualités', off: 'Annonces', odds: 'Paris', trend: 'Tendances', src: 'Sources' },
+    plFail: 'Impossible de charger les données en direct.', plWait: 'Pas encore de relevé.', plAgo: s => s < 90 ? `il y a ${s} s` : s < 5400 ? `il y a ${Math.round(s / 60)} min` : `il y a ${Math.round(s / 3600)} h`,
+    plAuto: 'Cette page se recharge toutes les 30 secondes. Chaque source est interrogée par le serveur de Firasa à la fréquence indiquée dans l\'onglet Sources.',
+    plPrices: 'Prix (Kraken, en dollars)', plPricesNote: 'Variation depuis l\'ouverture du jour chez Kraken (00:00 UTC).',
+    plFng: 'Indice Fear & Greed (alternative.me)', plFngNote: 'Échelle de 0 (peur extrême) à 100 (avidité extrême), publiée une fois par jour par alternative.me.', plFngL: { 'Extreme Fear': 'Peur extrême', Fear: 'Peur', Neutral: 'Neutre', Greed: 'Avidité', 'Extreme Greed': 'Avidité extrême' },
+    plDvol: 'Volatilité implicite sur 30 jours (indice DVOL de Deribit)', plDvolNote: 'En pourcentage annualisé, calculé par Deribit à partir des prix des options.',
+    plFund: 'Contrats perpétuels (OKX)', plFundNote: 'Taux de financement de la période en cours : positif, les acheteurs paient les vendeurs ; négatif, l\'inverse. Intérêt ouvert : valeur en dollars des contrats ouverts sur OKX.', plFundC: 'Financement', plOi: 'Intérêt ouvert',
+    plDer: 'Perpétuel BTC de Deribit', plMem: 'Réseau Bitcoin (mempool.space)', plMemFast: 'Frais pour le prochain bloc', plMemHour: 'Frais pour confirmation dans l\'heure', plMemH: 'Hauteur de bloc', plSatvb: 'sat/vB',
+    pl24: 'il y a 24 h', plNo24: 'Valeur d\'il y a 24 h : pas encore enregistrée.',
+    plOdds: 'Marchés de prédiction crypto (Polymarket)', plOddsNote: 'Les 15 marchés à deux issues de la catégorie « Crypto » de Polymarket les plus échangés sur 24 h, parmi ceux dont le prix se situe entre 5 % et 95 %. Le pourcentage est le prix de l\'issue sur Polymarket : c\'est ce que paient les parieurs, pas une probabilité mesurée par Firasa.', plVol: v => `${v} $ échangés sur 24 h`, plEnd: d => `clôture le ${d}`,
+    plTrend: 'Recherches en tendance (CoinGecko)', plTrendNote: 'Les 10 actifs les plus recherchés sur CoinGecko, dans l\'ordre publié par CoinGecko.', plRank: r => `rang de capitalisation ${r}`,
+    plOff: 'Annonces officielles', plOffNote: 'Annonces de cotation et de retrait de Binance (14 derniers jours) et communiqués de presse de la Réserve fédérale américaine (30 derniers jours). Titres et liens uniquement.', plOffEmpty: 'Aucune annonce enregistrée.',
+    plSrc: 'Sources interrogées par API', plSrcNames: { kraken: 'Kraken — prix de 16 actifs', fng: 'alternative.me — indice Fear & Greed', deribit: 'Deribit — indices DVOL, perpétuel BTC', okx: 'OKX — financement et intérêt ouvert (BTC, ETH, SOL)', mempool: 'mempool.space — frais et blocs Bitcoin', polymarket: 'Polymarket — marchés de prédiction crypto', trending: 'CoinGecko — recherches en tendance', binance: 'Binance — annonces de cotation et de retrait' },
+    plEvery: m => m === 1 ? 'chaque minute' : `toutes les ${m} minutes`, plOk: a => `dernier relevé réussi ${a}`, plErr: c => `dernière tentative en échec (code ${c})`, plRss: n => `Flux RSS : ${n} sites d'actualité (un site par minute, à tour de rôle) et la Réserve fédérale. Leur état est affiché dans l'onglet Actualités.`,
+    plBlocked: 'Sources testées et inaccessibles depuis le serveur de Firasa : API de Binance (prix), Bybit, SEC, CoinGecko (données globales, limite de débit), GDELT (limite de débit).',
+    newsBtn: 'Actualités : toutes les langues', newsTitle: 'Actualités crypto — toutes les langues',
+    newsIntro: (n, l) => `Titres publiés par ${n} sites d'actualité crypto en ${l} langues, lus dans leurs flux RSS publics. Firasa affiche le titre, la source, l'heure et le lien ; l'article se lit sur le site de la source.`,
+    newsTr: 'Les titres qui ne sont pas en français sont traduits par un modèle automatique (M2M100). Une traduction automatique peut contenir des erreurs ; le titre original est affiché en dessous.',
+    newsTag: "Les étiquettes d'actif viennent d'une recherche de mots-clés dans le titre.",
+    newsAll: 'Tout', newsEmpty: 'Aucun titre enregistré pour ce filtre.', newsCount: (n, d) => `${n} titres enregistrés depuis le ${d}. Les titres de plus de 30 jours sont supprimés.`,
+    newsOrig: 'Original', newsPending: 'traduction en attente',
+    newsFeeds: 'État des sources', newsFeedLine: (n, d) => `${n} titres au dernier relevé · ${d}`, newsFeedErr: (c, d) => `dernier relevé en échec (code ${c}) · ${d}`, newsFeedNone: 'pas encore relevé',
+    predTitle: 'Prédictions tirées des annonces',
+    predIntro: h => `Deux outils automatiques, en bougies d'un jour. « Gros mouvement » : quand un actif a bougé de 5 % ou plus sur la journée, l'outil prédit que le prix sera plus loin dans le même sens ${h} jours plus tard. « Gros mouvement + actualités » : même règle, seulement si au moins 3 titres enregistrés ce jour-là mentionnent l'actif. Chaque prédiction est enregistrée avant le résultat, puis notée dans le classement en avant du laboratoire.`,
+    predHist: "Mesure sur le passé (2017-2026) : sur 55 événements listés avec un mouvement d'au moins 5 % le jour même, le prix était plus loin dans le même sens 5 jours plus tard dans 58,2 % des cas. Cette liste a été choisie après coup et l'échantillon est petit : ce chiffre n'est pas une preuve.",
+    predNone: "Aucune prédiction enregistrée pour l'instant.", newsFail: 'Impossible de charger les actualités.',
+    predLine: (sym, up, d, h) => `${sym} : ${up ? 'plus haut' : 'plus bas'} dans ${h} jours — bougie du ${d}`, predNot: "Ce n'est pas un conseil financier.",
     labBtn: 'Laboratoire : classement des outils', labTitle: 'Laboratoire — classement des outils',
     labIntro: (n, sy, h) => `${n} outils, chacun réglé ou entraîné uniquement sur les données d'avant le 1er janvier 2024, puis mesuré du 1er janvier 2024 au 14 novembre 2026, période qu'il n'a pas vue. ${sy} cryptos Binance. Question posée : le prix sera-t-il plus haut ou plus bas ${h} bougies plus tard ?`,
     labMethod: (k, fee) => `Intervalle : rééchantillonnage par mois (4 000 tirages), niveau corrigé pour ${k} comparaisons (Bonferroni, 5 % au total). Gain : position dans le sens de l'outil, tenue jusqu'à l'horizon, mises égales ; net = brut moins ${fee} de frais aller-retour (hypothèse).`,
@@ -146,7 +173,7 @@ const UI = {
     fwCI: (a, b) => `Intervalle à 95 % : ${a} à ${b}.`, fwNoCI: 'Moins de 30 bougies de départ : pas d\'intervalle.',
     fwNote: "Intervalle calculé par bougie de départ. Les prévisions à 5 bougies se chevauchent : l'incertitude réelle est plus grande.",
     fwApi: "Bots extérieurs : envoi des prévisions par API (POST /api/lab/predict, dans les 10 minutes après la clôture en 1 h, 60 minutes en 1 jour). Les clés sont créées par l'administrateur.",
-    labTools: { up: 'Toujours « plus haut »', mom: 'Momentum 10 bougies (suivre)', amom: 'Momentum 10 bougies (inverser)', ema200: "Côté de l'EMA 200", ema2050: 'EMA 20 au-dessus ou sous EMA 50', rsi: 'RSI : hausse sous 30, baisse au-dessus de 70', bb: 'Bollinger : hausse sous la bande basse, baisse au-dessus de la haute', macd: "Signe de l'histogramme MACD", flow: 'Achats au marché > 53 % ou < 47 % (suivre)', aflow: 'Achats au marché > 53 % ou < 47 % (inverser)', eng: 'Avalement (sens TA-Lib)', aeng: 'Avalement (sens inversé)', logit: 'Régression logistique (12 mesures)', logit_c: 'Régression logistique, seulement si probabilité > 53 % ou < 47 %', logit11: 'Régression logistique (11 mesures, sans les achats au marché)', logit11_c: 'Régression logistique (11 mesures), seulement si probabilité > 53 % ou < 47 %', gb: 'Arbres boostés (12 mesures)', gb_c: 'Arbres boostés, seulement si probabilité > 53 % ou < 47 %' },
+    labTools: { big5: 'Gros mouvement (5 % ou plus sur la journée) : suivre', news5: 'Gros mouvement + au moins 3 titres le même jour : suivre', up: 'Toujours « plus haut »', mom: 'Momentum 10 bougies (suivre)', amom: 'Momentum 10 bougies (inverser)', ema200: "Côté de l'EMA 200", ema2050: 'EMA 20 au-dessus ou sous EMA 50', rsi: 'RSI : hausse sous 30, baisse au-dessus de 70', bb: 'Bollinger : hausse sous la bande basse, baisse au-dessus de la haute', macd: "Signe de l'histogramme MACD", flow: 'Achats au marché > 53 % ou < 47 % (suivre)', aflow: 'Achats au marché > 53 % ou < 47 % (inverser)', eng: 'Avalement (sens TA-Lib)', aeng: 'Avalement (sens inversé)', logit: 'Régression logistique (12 mesures)', logit_c: 'Régression logistique, seulement si probabilité > 53 % ou < 47 %', logit11: 'Régression logistique (11 mesures, sans les achats au marché)', logit11_c: 'Régression logistique (11 mesures), seulement si probabilité > 53 % ou < 47 %', gb: 'Arbres boostés (12 mesures)', gb_c: 'Arbres boostés, seulement si probabilité > 53 % ou < 47 %' },
     patBtn: 'Figures de bougies : ce qui a suivi chacune', patTitle: 'Figures de bougies',
     patIntro: (n, c, h) => `Les ${n} figures de la bibliothèque TA-Lib (définitions standard), détectées sur ${c} bougies Binance : 16 cryptos, de 15 min à 1 jour, d'août 2017 au 14 novembre 2026. Pour chaque figure : nombre de cas, et % de fois où le prix était plus haut ${h} après la bougie qui termine la figure.`,
     patNote: "Vert : au moins 1,5 point au-dessus du taux de base de la même unité de temps ; rouge : au moins 1,5 point en dessous (cases d'au moins 100 cas). Les figures qui exigent un gap sont rares : sur Binance, 98,2 % des bougies 1 h du BTC ouvrent à moins de 0,1 % de la clôture précédente.",
@@ -255,6 +282,33 @@ const UI = {
     admBots: 'Bots', admBotName: 'Bot name', admBotAdd: 'Create a key', admKind: 'Type', admHouse: 'house', admExt: 'external',
     admBotNote: 'An external bot sends its calls with its key (POST /api/lab/predict). Deleting a bot also deletes its calls and scores.',
     admKeyNote: 'Copy this key now: only its fingerprint is stored, it will not be shown again.', admDelConfirm: 'Delete this bot, its calls and its scores?',
+    hubBtn: '● Live data: market, news, announcements', hubTabs: { market: 'Market', news: 'News', off: 'Announcements', odds: 'Odds', trend: 'Trending', src: 'Sources' },
+    plFail: 'Could not load live data.', plWait: 'No reading yet.', plAgo: s => s < 90 ? `${s} s ago` : s < 5400 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`,
+    plAuto: "This page reloads every 30 seconds. Each source is queried by Firasa's server at the frequency shown in the Sources tab.",
+    plPrices: 'Prices (Kraken, in dollars)', plPricesNote: "Change since Kraken's daily open (00:00 UTC).",
+    plFng: 'Fear & Greed Index (alternative.me)', plFngNote: 'Scale from 0 (extreme fear) to 100 (extreme greed), published once a day by alternative.me.', plFngL: {},
+    plDvol: '30-day implied volatility (Deribit DVOL index)', plDvolNote: 'Annualised percentage, computed by Deribit from option prices.',
+    plFund: 'Perpetual contracts (OKX)', plFundNote: 'Funding rate for the current period: positive, longs pay shorts; negative, the reverse. Open interest: dollar value of open contracts on OKX.', plFundC: 'Funding', plOi: 'Open interest',
+    plDer: 'Deribit BTC perpetual', plMem: 'Bitcoin network (mempool.space)', plMemFast: 'Fee for the next block', plMemHour: 'Fee for confirmation within the hour', plMemH: 'Block height', plSatvb: 'sat/vB',
+    pl24: '24 h ago', plNo24: 'Value 24 h ago: not recorded yet.',
+    plOdds: 'Crypto prediction markets (Polymarket)', plOddsNote: "The 15 two-outcome markets in Polymarket's \"Crypto\" category with the most 24-hour volume, among those priced between 5% and 95%. The percentage is the outcome's price on Polymarket: it is what bettors pay, not a probability measured by Firasa.", plVol: v => `$${v} traded in 24 h`, plEnd: d => `closes ${d}`,
+    plTrend: 'Trending searches (CoinGecko)', plTrendNote: 'The 10 most searched assets on CoinGecko, in the order published by CoinGecko.', plRank: r => `market-cap rank ${r}`,
+    plOff: 'Official announcements', plOffNote: 'Binance listing and delisting announcements (last 14 days) and US Federal Reserve press releases (last 30 days). Headlines and links only.', plOffEmpty: 'No announcement stored.',
+    plSrc: 'Sources queried by API', plSrcNames: { kraken: 'Kraken — prices of 16 assets', fng: 'alternative.me — Fear & Greed Index', deribit: 'Deribit — DVOL indices, BTC perpetual', okx: 'OKX — funding and open interest (BTC, ETH, SOL)', mempool: 'mempool.space — Bitcoin fees and blocks', polymarket: 'Polymarket — crypto prediction markets', trending: 'CoinGecko — trending searches', binance: 'Binance — listing and delisting announcements' },
+    plEvery: m => m === 1 ? 'every minute' : `every ${m} minutes`, plOk: a => `last successful reading ${a}`, plErr: c => `last attempt failed (code ${c})`, plRss: n => `RSS feeds: ${n} news sites (one site per minute, in rotation) and the Federal Reserve. Their status is shown in the News tab.`,
+    plBlocked: "Sources tested and unreachable from Firasa's server: Binance API (prices), Bybit, SEC, CoinGecko (global data, rate limit), GDELT (rate limit).",
+    newsBtn: 'News: all languages', newsTitle: 'Crypto news — all languages',
+    newsIntro: (n, l) => `Headlines published by ${n} crypto news sites in ${l} languages, read from their public RSS feeds. Firasa shows the headline, source, time and link; the article is read on the source's site.`,
+    newsTr: 'Headlines that are not in English are translated by an automatic model (M2M100). Machine translation can contain errors; the original headline is shown underneath.',
+    newsTag: 'Asset tags come from a keyword search in the headline.',
+    newsAll: 'All', newsEmpty: 'No headline stored for this filter.', newsCount: (n, d) => `${n} headlines stored since ${d}. Headlines older than 30 days are deleted.`,
+    newsOrig: 'Original', newsPending: 'translation pending',
+    newsFeeds: 'Source status', newsFeedLine: (n, d) => `${n} headlines at last fetch · ${d}`, newsFeedErr: (c, d) => `last fetch failed (code ${c}) · ${d}`, newsFeedNone: 'not fetched yet',
+    predTitle: 'Predictions drawn from announcements',
+    predIntro: h => `Two automatic tools, on one-day candles. "Big move": when an asset moved 5% or more over the day, the tool predicts the price will be further in the same direction ${h} days later. "Big move + news": same rule, only if at least 3 headlines stored that day mention the asset. Each prediction is recorded before the outcome, then scored in the lab's forward leaderboard.`,
+    predHist: 'Measured on the past (2017-2026): across 55 listed events with a move of at least 5% on the day, the price was further in the same direction 5 days later in 58.2% of cases. That list was chosen with hindsight and the sample is small: this figure is not proof.',
+    predNone: 'No prediction recorded yet.', newsFail: 'Could not load the news.',
+    predLine: (sym, up, d, h) => `${sym}: ${up ? 'higher' : 'lower'} in ${h} days — candle of ${d}`, predNot: 'This is not financial advice.',
     labBtn: 'Lab: tool leaderboard', labTitle: 'Lab — tool leaderboard',
     labIntro: (n, sy, h) => `${n} tools, each tuned or trained only on data before January 1, 2024, then measured from January 1, 2024 to November 14, 2026, a period it has not seen. ${sy} Binance coins. Question asked: will price be higher or lower ${h} candles later?`,
     labMethod: (k, fee) => `Interval: resampling by month (4,000 draws), level corrected for ${k} comparisons (Bonferroni, 5% overall). Gain: position in the tool's direction, held to the horizon, equal size; net = gross minus ${fee} round-trip fees (assumption).`,
@@ -272,7 +326,7 @@ const UI = {
     fwCI: (a, b) => `95% interval: ${a} to ${b}.`, fwNoCI: 'Fewer than 30 starting candles: no interval.',
     fwNote: 'Interval computed per starting candle. 5-candle calls overlap: the real uncertainty is larger.',
     fwApi: 'External bots: calls are sent by API (POST /api/lab/predict, within 10 minutes of the close on 1h, 60 minutes on 1D). Keys are created by the administrator.',
-    labTools: { up: 'Always "higher"', mom: '10-candle momentum (follow)', amom: '10-candle momentum (fade)', ema200: 'Side of the EMA 200', ema2050: 'EMA 20 above or below EMA 50', rsi: 'RSI: up below 30, down above 70', bb: 'Bollinger: up below the lower band, down above the upper', macd: 'Sign of the MACD histogram', flow: 'Market buys > 53% or < 47% (follow)', aflow: 'Market buys > 53% or < 47% (fade)', eng: 'Engulfing (TA-Lib direction)', aeng: 'Engulfing (reversed)', logit: 'Logistic regression (12 measures)', logit_c: 'Logistic regression, only when probability > 53% or < 47%', logit11: 'Logistic regression (11 measures, without market buys)', logit11_c: 'Logistic regression (11 measures), only when probability > 53% or < 47%', gb: 'Boosted trees (12 measures)', gb_c: 'Boosted trees, only when probability > 53% or < 47%' },
+    labTools: { big5: 'Big move (5% or more on the day): follow', news5: 'Big move + at least 3 headlines the same day: follow', up: 'Always "higher"', mom: '10-candle momentum (follow)', amom: '10-candle momentum (fade)', ema200: 'Side of the EMA 200', ema2050: 'EMA 20 above or below EMA 50', rsi: 'RSI: up below 30, down above 70', bb: 'Bollinger: up below the lower band, down above the upper', macd: 'Sign of the MACD histogram', flow: 'Market buys > 53% or < 47% (follow)', aflow: 'Market buys > 53% or < 47% (fade)', eng: 'Engulfing (TA-Lib direction)', aeng: 'Engulfing (reversed)', logit: 'Logistic regression (12 measures)', logit_c: 'Logistic regression, only when probability > 53% or < 47%', logit11: 'Logistic regression (11 measures, without market buys)', logit11_c: 'Logistic regression (11 measures), only when probability > 53% or < 47%', gb: 'Boosted trees (12 measures)', gb_c: 'Boosted trees, only when probability > 53% or < 47%' },
     patBtn: 'Candlestick patterns: what followed each one', patTitle: 'Candlestick patterns',
     patIntro: (n, c, h) => `The ${n} patterns of the TA-Lib library (standard definitions), detected on ${c} Binance candles: 16 coins, 15m to 1D, August 2017 to November 14, 2026. For each pattern: number of cases, and % of times price was higher ${h} after the candle that completes the pattern.`,
     patNote: 'Green: at least 1.5 points above the base rate of the same timeframe; red: at least 1.5 points below (cells with at least 100 cases). Patterns that need a gap are rare: on Binance, 98.2% of BTC 1h candles open within 0.1% of the previous close.',
@@ -327,6 +381,8 @@ $('#langBtn').onclick = () => {
     renderGame(); if (G.guess != null && G.revealed >= G.h) showResult(true);
   } else if (SCREEN === 'report' && lastReport) renderReport(lastReport, U().report, true);
   else if (SCREEN === 'live') renderLive();
+  else if (SCREEN === 'news') renderNews();
+  else if (SCREEN === 'pulse') renderPulse();
   else if (SCREEN === 'patterns') renderPatterns();
   else if (SCREEN === 'lab') renderLab();
   else if (SCREEN === 'account') renderAccount();
@@ -380,6 +436,9 @@ function go(screen) {
   else if (screen === 'live') renderLive();
   else if (screen === 'patterns') renderPatterns();
   else if (screen === 'lab') renderLab();
+  else if (screen === 'news') renderNews();
+  else if (screen === 'pulse') renderPulse();
+  else if (screen.slice(0, 6) === 'pulse:') { PULSE_TAB = screen.slice(6); renderPulse(); }
   else if (screen === 'account') renderAccount();
   else if (screen === 'admin') renderAdmin();
   window.scrollTo(0, 0);
@@ -420,6 +479,7 @@ function renderHome() {
   <button class="btn" data-go="play">${cur ? t.resume(cur.rounds.length, cur.len) : t.start(s.len)}</button>
   ${cur ? `<button class="btn ghost" style="margin-top:8px" id="newSess">${t.abandon}</button>` : ''}
   <button class="btn ghost live-btn" style="margin-top:8px" data-go="live">${t.liveBtn}</button>
+  <button class="btn ghost live-btn" style="margin-top:8px" data-go="pulse">${t.hubBtn}</button>
   <button class="btn ghost" style="margin-top:8px" data-go="lab">${t.labBtn}</button>
   <button class="btn ghost" style="margin-top:8px" data-go="patterns">${t.patBtn}</button>
   <button class="btn ghost" style="margin-top:8px" data-go="signals">${t.whichSignals}</button>
@@ -979,6 +1039,83 @@ function renderLab() {
       <div class="small muted">${t.fwLine(r.n.toLocaleString(loc()), r.t.toLocaleString(loc()), fmtPct(r.gross * 100, 3))} ${r.t >= 30 ? t.fwCI(pctTxt(Math.max(0, a - 1.96 * r.se), 1), pctTxt(Math.min(1, a + 1.96 * r.se), 1)) : t.fwNoCI}</div></div>`; }).join('') + pend + `<p class="small muted" style="margin:6px 0 0">${t.fwNote}</p>`;
   }).catch(() => { const el = $('#fw'); if (el) el.innerHTML = `<p class="small muted">${t.loadFail}</p>`; });
 }
+
+// ---------- données en direct (sous-menu) ----------
+let PULSE_TAB = 'market', PULSE_TIMER = null;
+function hubNav(on) {
+  const t = U().hubTabs;
+  return `<div class="tools" style="margin-bottom:10px">${Object.keys(t).map(k => `<button class="chip ${on === k ? 'on' : ''}" data-go="${k === 'news' ? 'news' : 'pulse:' + k}">${t[k]}</button>`).join('')}</div>`;
+}
+function renderPulse(soft) {
+  SCREEN = 'pulse'; const t = U(), tab = PULSE_TAB;
+  const esc = x => String(x).replace(/[&<>"']/g, ch => '&#' + ch.charCodeAt(0) + ';');
+  const num = (x, d) => Number(x).toLocaleString(loc(), { minimumFractionDigits: d, maximumFractionDigits: d });
+  const big = x => x >= 1e9 ? num(x / 1e9, 2) + (FR() ? ' Md$' : 'B $') : num(x / 1e6, 0) + (FR() ? ' M$' : 'M $');
+  const px = x => num(x, x >= 1000 ? 0 : x >= 10 ? 2 : x >= 1 ? 3 : 5);
+  if (!soft) app.innerHTML = `${hubNav(tab)}<div id="plBody"><p class="small muted">…</p></div><button class="btn ghost" data-go="home">${t.back}</button>`;
+  clearTimeout(PULSE_TIMER); PULSE_TIMER = setTimeout(() => { if (SCREEN === 'pulse' && $('#plBody')) renderPulse(true); }, 30000);
+  const row = (a, b, c) => `<div class="row" style="justify-content:space-between;flex-wrap:nowrap;margin:5px 0"><span>${a}</span><span class="mono" style="white-space:nowrap;margin-left:10px">${b}${c ? ` <span class="muted small">${c}</span>` : ''}</span></div>`;
+  const draw = (d, off) => {
+    const el = $('#plBody'); if (!el || SCREEN !== 'pulse' || PULSE_TAB !== tab) return;
+    const S = Object.fromEntries(d.snap.map(x => [x.k, x])), age = k => S[k] && S[k].at ? `<p class="small muted" style="margin:8px 0 0">${t.plSrcNames[k].split(' — ')[0]} · ${t.plAgo(Math.max(0, d.now - S[k].at))}</p>` : '';
+    const has = k => S[k] && S[k].v, wait = `<p class="small">${t.plWait}</p>`;
+    const ago = (k, f) => d.ago[k] != null ? `${t.pl24} : ${f(d.ago[k])}` : '';
+    let h = '';
+    if (tab === 'market') {
+      h += `<section class="card"><h3>${t.plPrices}</h3>${has('kraken') ? Object.keys(S.kraken.v).map(s => { const v = S.kraken.v[s], ch = v[0] / v[1] - 1; return row(`<b>${s}</b>`, px(v[0]), `<span class="${ch >= 0 ? 'up' : 'down'}">${fmtPct(ch * 100, 2)}</span>`); }).join('') + `<p class="small muted" style="margin:8px 0 0">${t.plPricesNote}</p>` + age('kraken') : wait}</section>`;
+      h += `<section class="card"><h3>${t.plFng}</h3>${has('fng') ? `<div class="kpis"><div class="kpi"><b>${S.fng.v.x}</b><span>${esc(t.plFngL[S.fng.v.label] || S.fng.v.label)}</span></div></div><p class="small muted">${t.plFngNote} ${ago('fng', x => x)}</p>` + age('fng') : wait}</section>`;
+      h += `<section class="card"><h3>${t.plDvol}</h3>${has('deribit') ? row('<b>BTC</b>', num(S.deribit.v.dvolBTC, 1) + sfx(), ago('dvol_BTC', x => num(x, 1) + sfx())) + row('<b>ETH</b>', num(S.deribit.v.dvolETH, 1) + sfx(), ago('dvol_ETH', x => num(x, 1) + sfx())) + `<p class="small muted" style="margin:8px 0 0">${t.plDvolNote}</p>` + age('deribit') : wait}</section>`;
+      h += `<section class="card"><h3>${t.plFund}</h3>${has('okx') ? Object.keys(S.okx.v).map(s => { const v = S.okx.v[s]; return row(`<b>${s}</b> · ${t.plFundC}`, fmtPct(v.fund * 100, 4), ago('fund_' + s, x => fmtPct(x * 100, 4))) + row(`<b>${s}</b> · ${t.plOi}`, big(v.oiUsd), ago('oi_' + s, big)); }).join('') + `<p class="small muted" style="margin:8px 0 0">${t.plFundNote}</p>` + age('okx') : wait}</section>`;
+      h += `<section class="card"><h3>${t.plMem}</h3>${has('mempool') ? row(t.plMemFast, S.mempool.v.fast + ' ' + t.plSatvb, ago('fee', x => x + ' ' + t.plSatvb)) + row(t.plMemHour, S.mempool.v.hour + ' ' + t.plSatvb) + row(t.plMemH, num(S.mempool.v.height, 0)) + age('mempool') : wait}</section>`;
+      h += `<p class="small muted" style="margin:4px 2px 12px">${t.plAuto}</p>`;
+    } else if (tab === 'odds') {
+      h += `<section class="card"><h3>${t.plOdds}</h3><p class="small muted">${t.plOddsNote}</p>${has('polymarket') ? S.polymarket.v.map(m => `<div class="call" style="display:block"><a href="https://polymarket.com/market/${esc(m.slug)}" target="_blank" rel="noopener nofollow" style="color:inherit;text-decoration:none"><b>${esc(m.q)}</b></a><div class="row" style="justify-content:space-between;margin-top:4px"><span class="mono">${esc(m.o[0])} ${num(m.p * 100, 1)}${sfx()} · ${esc(m.o[1])} ${num((1 - m.p) * 100, 1)}${sfx()}</span></div><div class="small muted">${t.plVol(num(m.vol, 0))}${m.end ? ' · ' + t.plEnd(new Date(m.end).toLocaleDateString(loc(), { day: 'numeric', month: 'short', year: 'numeric' })) : ''}</div></div>`).join('') + age('polymarket') : wait}<p class="small muted" style="margin:8px 0 0">${t.predNot}</p></section>`;
+    } else if (tab === 'trend') {
+      h += `<section class="card"><h3>${t.plTrend}</h3><p class="small muted">${t.plTrendNote}</p>${has('trending') ? S.trending.v.map((c, i) => row(`${i + 1}. <b>${esc(c.name)}</b> <span class="muted">${esc(c.sym)}</span>`, '', c.rank ? t.plRank(c.rank) : '')).join('') + age('trending') : wait}</section>`;
+    } else if (tab === 'off') {
+      h += `<section class="card"><h3>${t.plOff}</h3><p class="small muted">${t.plOffNote}</p></section>` + (off && off.rows.length ? off.rows.map(r => `<div class="call" style="display:block"><a href="${esc(r.url)}" target="_blank" rel="noopener nofollow" style="color:inherit;text-decoration:none"><b>${esc(FR() && r.fr ? r.fr : r.title)}</b></a>${FR() && r.fr ? `<div class="small muted">${t.newsOrig} : ${esc(r.title)}</div>` : ''}<div class="small muted" style="margin-top:3px">${esc(r.src)} · ${new Date(r.ts * 1000).toLocaleString(loc(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div></div>`).join('') : `<p class="small">${t.plOffEmpty}</p>`);
+    } else {
+      h += `<section class="card"><h3>${t.plSrc}</h3>${Object.keys(t.plSrcNames).map(k => { const x = S[k];
+        return `<div class="small" style="margin:6px 0"><b>${t.plSrcNames[k]}</b><br><span class="muted">${t.plEvery(d.every[k])} · ${!x ? t.plWait : (x.at ? t.plOk(t.plAgo(Math.max(0, d.now - x.at))) : '') + (x.status !== 200 ? (x.at ? ' · ' : '') + t.plErr(x.status) : '')}</span></div>`; }).join('')}
+        <p class="small muted" style="margin:10px 0 0">${t.plRss(off ? off.sources.length : 20)}</p><p class="small muted">${t.plBlocked}</p></section>`;
+    }
+    el.innerHTML = h;
+  };
+  const need = tab === 'off' || tab === 'src';
+  Promise.all([fetch('/api/pulse').then(r => r.json()), need ? fetch('/api/news?off=1').then(r => r.json()) : null]).then(a => draw(a[0], a[1])).catch(() => { const el = $('#plBody'); if (el && !soft) el.innerHTML = `<p class="small muted">${t.plFail}</p>`; });
+}
+
+// ---------- actualités multilingues ----------
+let NEWS_COIN = '';
+function renderNews() {
+  SCREEN = 'news'; const t = U(), fr = FR();
+  const esc = x => String(x).replace(/[&<>"']/g, ch => '&#' + ch.charCodeAt(0) + ';');
+  const dt = ts => new Date(ts * 1000).toLocaleString(loc(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const day = ts => new Date(ts * 1000).toLocaleDateString(loc(), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  app.innerHTML = `${hubNav('news')}<section class="card"><h3>${t.newsTitle}</h3><div id="nwHead"><p class="small muted">…</p></div></section>
+  <section class="card"><h3>${t.predTitle}</h3><div id="nwPred"></div></section>
+  <div class="tools" id="nwCoin"></div><div id="nwList"></div>
+  <section class="card"><h3>${t.newsFeeds}</h3><div id="nwFeeds"></div></section>
+  <button class="btn ghost" data-go="home">${t.back}</button>`;
+  fetch('/api/news' + (NEWS_COIN ? '?coin=' + NEWS_COIN : '')).then(r => r.json()).then(d => {
+    if (SCREEN !== 'news' || !$('#nwList')) return;
+    const langs = new Set(d.sources.map(x => x[0]));
+    $('#nwHead').innerHTML = `<p>${t.newsIntro(d.sources.length, langs.size)}</p><p class="small muted">${t.newsTr} ${t.newsTag}</p>${d.total ? `<p class="small muted">${t.newsCount(d.total.toLocaleString(loc()), day(d.first))}</p>` : ''}`;
+    $('#nwPred').innerHTML = `<p class="small">${t.predIntro(d.h)}</p><p class="small muted">${t.predHist}</p>` + (d.open.length ? d.open.map(o => `<div class="call" style="display:block"><b>${t.predLine(esc(o.sym), o.dir > 0, day(o.t0), d.h)}</b><div class="small muted">${t.labTools[o.code]}</div></div>`).join('') : `<p class="small">${t.predNone}</p>`) + `<p class="small muted" style="margin:8px 0 0">${t.predNot}</p>`;
+    $('#nwCoin').innerHTML = [''].concat(LIVE_SYMS_ALL).map(x => `<button class="chip ${NEWS_COIN === x ? 'on' : ''}" data-v="${x}">${x || t.newsAll}</button>`).join('');
+    $('#nwCoin').onclick = e => { const b = e.target.closest('button'); if (!b) return; NEWS_COIN = b.dataset.v; renderNews(); };
+    $('#nwList').innerHTML = d.rows.length ? d.rows.map(r => {
+      const mine = fr ? 'fr' : 'en', shown = r.lang === mine ? r.title : (r[mine] || r.title), orig = r.lang !== mine && r[mine];
+      const coins = r.coins.split(',').filter(Boolean).map(c => `<span class="chip on" style="padding:1px 7px;font-size:11px">${c}</span>`).join(' ');
+      return `<div class="call" style="display:block"><a href="${esc(r.url)}" target="_blank" rel="noopener nofollow" style="color:inherit;text-decoration:none"><b>${esc(shown)}</b></a>
+      ${orig ? `<div class="small muted">${t.newsOrig} : ${esc(r.title)}</div>` : (r.lang !== mine ? `<div class="small muted">${t.newsPending}</div>` : '')}
+      <div class="small muted" style="margin-top:3px">${esc(r.src)} · ${r.lang.toUpperCase()} · ${dt(r.ts)} ${coins}</div></div>`; }).join('') : `<p class="small">${t.newsEmpty}</p>`;
+    const fl = Object.fromEntries(d.feeds.map(f => [f.src, f]));
+    $('#nwFeeds').innerHTML = d.sources.map(x => { const f = fl[x[1]];
+      return `<div class="small" style="margin:3px 0"><b>${esc(x[1])}</b> · ${x[0].toUpperCase()} — <span class="muted">${!f ? t.newsFeedNone : f.status === 200 ? t.newsFeedLine(f.n, dt(f.at)) : t.newsFeedErr(f.status, dt(f.at))}</span></div>`; }).join('');
+  }).catch(() => { const el = $('#nwHead'); if (el) el.innerHTML = `<p class="small muted">${t.newsFail}</p>`; });
+}
+const LIVE_SYMS_ALL = ['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'ADA', 'DOGE', 'AVAX', 'LINK', 'LTC', 'DOT', 'TRX', 'ATOM', 'NEAR', 'PAXG', 'ETC'];
 
 // ---------- figures de bougies (TA-Lib) ----------
 const PAT = window.FIRASA_PATTERNS || { list: [], stats: null };
