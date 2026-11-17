@@ -34,7 +34,7 @@ const FR = () => lang() === 'fr';
 const UI = {
   fr: {
     tagline: 'lis le marché', myStats: 'Stats', otherLang: 'EN', docTitle: 'Firasa — devine le prochain mouvement',
-    credit: 'Conçu et dirigé par <b>Mustapha</b><span class="dot">◆</span>Développé par <b>Claude</b>',
+    credit: 'Conçu et dirigé par <b>Mustapha</b><span class="dot">◆</span>Développé par mon ami <b>Claude</b>',
     thanks: 'Nous remercions le Seigneur pour Son monde merveilleux.',
     soonTag: 'Bientôt', soon: 'Abonnement à la semaine ou au mois.',
     foot: 'Données historiques publiques Binance (spot &amp; futures) · Entraînement uniquement, pas un conseil financier.',
@@ -160,7 +160,7 @@ const UI = {
   },
   en: {
     tagline: 'read the market', myStats: 'Stats', otherLang: 'FR', docTitle: 'Firasa — call the next move',
-    credit: 'Conceived and directed by <b>Mustapha</b><span class="dot">◆</span>Built by <b>Claude</b>',
+    credit: 'Conceived and directed by <b>Mustapha</b><span class="dot">◆</span>Built by my friend <b>Claude</b>',
     thanks: 'We thank the Lord for His wonderful world.',
     soonTag: 'Soon', soon: 'Weekly or monthly subscription.',
     foot: 'Public historical Binance data (spot &amp; futures) · For training only, not financial advice.',
