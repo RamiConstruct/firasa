@@ -34,7 +34,7 @@ const FR = () => lang() === 'fr';
 const UI = {
   fr: {
     tagline: 'lis le marché', myStats: 'Stats', otherLang: 'EN', docTitle: 'Firasa — devine le prochain mouvement',
-    credit: 'Conçu et dirigé par <b>Mustapha</b><span class="dot">◆</span>Développé par <b>Claude</b><span class="dot d2">◆</span><span class="more"><b>Kawthar</b>, sa sœur, le rejoindra peut-être.</span>',
+    credit: 'Conçu et dirigé par <b>Mustapha</b><span class="dot">◆</span>Développé par <b>Claude</b>',
     soonTag: 'Bientôt', soon: 'Abonnement à la semaine ou au mois.',
     foot: 'Données historiques publiques Binance (spot &amp; futures) · Entraînement uniquement, pas un conseil financier.',
     tf: { '15m': '15 min', '1h': '1 h', '4h': '4 h', '1d': '1 jour' },
@@ -159,7 +159,7 @@ const UI = {
   },
   en: {
     tagline: 'read the market', myStats: 'Stats', otherLang: 'FR', docTitle: 'Firasa — call the next move',
-    credit: 'Conceived and directed by <b>Mustapha</b><span class="dot">◆</span>Built by <b>Claude</b><span class="dot d2">◆</span><span class="more">His sister <b>Kawthar</b> may join him.</span>',
+    credit: 'Conceived and directed by <b>Mustapha</b><span class="dot">◆</span>Built by <b>Claude</b>',
     soonTag: 'Soon', soon: 'Weekly or monthly subscription.',
     foot: 'Public historical Binance data (spot &amp; futures) · For training only, not financial advice.',
     tf: { '15m': '15m', '1h': '1h', '4h': '4h', '1d': '1D' },
