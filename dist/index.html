@@ -122,6 +122,7 @@ td.n{font-family:var(--mono);text-align:right;white-space:nowrap} th.n{text-alig
 .foot{color:var(--dim);font-size:12px;text-align:center;margin:26px 0 0}
 .foot a{color:var(--muted)}
 .hide{display:none!important}
+.thanks{text-align:center;font-family:var(--serif);font-style:italic;color:var(--gold);font-size:14px;margin:14px 0 0}
 input{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line2);border-radius:10px;padding:8px 10px}
 @media(max-width:430px){.hbtn{padding:7px 10px;font-size:12.5px}}
 .credit{margin:-6px 2px 12px;font-size:12.5px;color:var(--muted);line-height:1.5}
@@ -165,6 +166,7 @@ input{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(-
   <div class="credit" id="credit"></div>
   <main id="app"></main>
   <p class="foot" id="foot">Données historiques publiques Binance (spot &amp; futures) · Entraînement uniquement, pas un conseil financier.</p>
+  <p class="thanks" id="thanks"></p>
 </div>
 <div class="toast" id="toast"></div>
 <script>
@@ -1027,6 +1029,7 @@ const UI = {
   fr: {
     tagline: 'lis le marché', myStats: 'Stats', otherLang: 'EN', docTitle: 'Firasa — devine le prochain mouvement',
     credit: 'Conçu et dirigé par <b>Mustapha</b><span class="dot">◆</span>Développé par <b>Claude</b>',
+    thanks: 'Nous remercions le Seigneur pour Son monde merveilleux.',
     soonTag: 'Bientôt', soon: 'Abonnement à la semaine ou au mois.',
     foot: 'Données historiques publiques Binance (spot &amp; futures) · Entraînement uniquement, pas un conseil financier.',
     tf: { '15m': '15 min', '1h': '1 h', '4h': '4 h', '1d': '1 jour' },
@@ -1152,6 +1155,7 @@ const UI = {
   en: {
     tagline: 'read the market', myStats: 'Stats', otherLang: 'FR', docTitle: 'Firasa — call the next move',
     credit: 'Conceived and directed by <b>Mustapha</b><span class="dot">◆</span>Built by <b>Claude</b>',
+    thanks: 'We thank the Lord for His wonderful world.',
     soonTag: 'Soon', soon: 'Weekly or monthly subscription.',
     foot: 'Public historical Binance data (spot &amp; futures) · For training only, not financial advice.',
     tf: { '15m': '15m', '1h': '1h', '4h': '4h', '1d': '1D' },
@@ -1302,6 +1306,7 @@ function chrome() {
   document.title = U().docTitle;
   $('#tagline').textContent = U().tagline;
   $('#credit').innerHTML = U().credit;
+  $('#thanks').textContent = U().thanks;
   $('#statsBtn').textContent = U().myStats;
   $('#langBtn').textContent = U().otherLang;
   accLabel();
